@@ -11,7 +11,8 @@ from wtforms import Form, BooleanField, TextField, PasswordField, validators
 # Create app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
+app.config['SQLALCHEMY_DATABASE_URI'] = \
+        'sqlite:////srv/data/nbgr-x/2015-16/students.sqlite'
 app.config['DEBUG'] = True
 
 # 'SECURITY_CONFIRMABLE',
