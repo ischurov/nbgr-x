@@ -10,8 +10,9 @@ from wtforms import Form, BooleanField, TextField, PasswordField, validators
 
 # Create app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = ''
+app.config['SECRET_KEY'] = 'secret'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
+app.config['DEBUG'] = True
 
 # 'SECURITY_CONFIRMABLE',
 for field in ['SECURITY_REGISTERABLE','SECURITY_RECOVERABLE', 'SECURITY_LOGIN_WITHOUT_CONFIRMATION']:
@@ -59,7 +60,8 @@ class ExtendedRegisterForm(RegisterForm):
 
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 security = Security(app, user_datastore,
-         confirm_register_form=ExtendedRegisterForm)
+         confirm_register_form=ExtendedRegisterForm,
+         register_form=ExtendedRegisterForm)
 
 # Create a user to test with
 @app.before_first_request
