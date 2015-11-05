@@ -3,22 +3,34 @@ import os
 from flask import Flask, render_template, url_for, request, abort, redirect
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.security import Security, SQLAlchemyUserDatastore, \
-    UserMixin, RoleMixin, login_required, current_user
+    UserMixin, RoleMixin, login_required, current_user, roles_required
 
 from flask_security.utils import encrypt_password
 from flask_mail import Mail
 from flask_admin.contrib import sqla
 from flask_admin import helpers as admin_helpers
+from wtforms.fields.html5 import DateField
 
 import flask_admin
 
 from flask_security.forms import RegisterForm
-from wtforms import Form, BooleanField, TextField, PasswordField, SelectMultipleField, validators
-from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField
+from wtforms import Form, BooleanField, StringField, PasswordField, SelectMultipleField, validators
+from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField, QuerySelectField
+
+from wtforms.ext.sqlalchemy.orm import model_form
+
+from flask_bootstrap import Bootstrap
+from flask.ext.bower import Bower
+
+from werkzeug import secure_filename
+from flask_wtf.file import FileField
+
 
 # Create app
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
+Bootstrap(app)
+Bower(app)
 #app.config['SECRET_KEY'] = 'secret'
 #app.config['SQLALCHEMY_DATABASE_URI'] = \
 #        'sqlite:////srv/data/nbgr-x/2015-16/students.sqlite'
@@ -110,10 +122,12 @@ class ProblemSet(db.Model):
 
 
 
+
+
 # Setup Flask-Security
 class ExtendedRegisterForm(RegisterForm):
-    first_name = TextField('First Name', [validators.Required()])
-    last_name = TextField('Last Name', [validators.Required()])
+    first_name = StringField('First Name', [validators.DataRequired()])
+    last_name = StringField('Last Name', [validators.DataRequired()])
 #    active_courses = Course.query.filter_by(active = True).all()
 #    courses_choices = [(c.id, c.description) for c in active_courses]
     courses = QuerySelectMultipleField(
@@ -170,6 +184,26 @@ def build_sample_db():
 @login_required
 def home():
     return render_template('index.html')
+
+@app.route('/add/problemset', methods=["GET","POST"])
+@roles_required('superuser')
+def add_problemset():
+    ps_form = model_form(ProblemSet, Form, field_args={'active': {'default': True}})
+#    ps_form.deadline = DateField('The Deadline', format='%Y-%m-%d')
+    ps_form.course = QuerySelectField(
+            query_factory = lambda: Course.query.filter_by(active=True),
+            get_label='description')
+
+    form = ps_form(request.form)
+    if request.method == 'POST' and form.validate():
+        new_problemset = ProblemSet()
+        form.populate_obj(new_problemset)
+        db.session.add(new_problemset)
+        db.session.commit()
+        return redirect(url_for('home'))
+    return render_template('add_problemset.html', add_problemset_form = form)
+
+
 
 # Create admin
 admin = flask_admin.Admin(
