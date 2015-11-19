@@ -4,15 +4,28 @@
     <div class="col-sm-8 col-sm-offset-2">
         <h1>Assignments</h1>
         <ul>
-        {% for course in current_user.courses %}
+        {% for course in courses %}
             {% if course.active %}
-            <h2>{{ course.description }}</h2>
+            <li>{{ course.description }}</li>
             <ul>
                 {% for assignment in course.assignments %}
                     <li>
                         {{ assignment.description }}
                         <a href="{{ assignment.ipynb_link() }}">ipynb</a>
                         <a href="{{ url_for("submit_assignment", id=assignment.id) }}">submit</a>
+                        {% if assignment.submissions %}
+                        <p>Your submissions:</p>
+                        <ul>
+                            {% for submission in assignment.submissions %}
+                            <li>
+                                <a href="{{ url_for("get_submission_content", id=submission.id) }}">
+                                {{ submission }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+
                     </li>
                 {% endfor %}
             </ul>

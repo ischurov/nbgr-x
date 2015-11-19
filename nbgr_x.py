@@ -1,5 +1,6 @@
 import os
-from flask import Flask, render_template, url_for, request, abort, redirect
+from flask import Flask, render_template, url_for, request, abort,\
+    redirect, Response
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.security import Security, SQLAlchemyUserDatastore, \
     UserMixin, RoleMixin, login_required, current_user, roles_required
@@ -96,7 +97,6 @@ class User(db.Model, UserMixin):
                               backref=db.backref('users', lazy='dynamic'))
     submissions = db.relationship('Submission', backref=db.backref('user'), lazy='dynamic')
 
-
     def __str__(self):
         return self.email
 
@@ -119,30 +119,33 @@ class Assignment(db.Model):
                              secure_filename(self.course.name),
                              self.ipynb)
 
+
 class Submission(db.Model):
-   id = db.Column(db.Integer, primary_key=True)
-   assignment_id = db.Column(db.Integer, db.ForeignKey('assignment.id'))
-   user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-   timestamp = db.Column(db.DateTime())
+    id = db.Column(db.Integer, primary_key=True)
+    assignment_id = db.Column(db.Integer, db.ForeignKey('assignment.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    timestamp = db.Column(db.DateTime())
 
-   def __str__(self):
-       return str(self.id)
+    def __str__(self):
+        return str(self.id)
 
-   def dirpath(self):
-       return os.path.join(app.config['SUBMISSIONS_DIR'],
-                           secure_filename(self.assignment.course.name),
-                           "submitted",
-                           str(self.user_id),
-                           secure_filename(self.assignment.name)
-                           )
-   def filename(self):
-       return self.timestamp.isoformat()+".ipynb"
+    def dirpath(self):
+        return os.path.join(app.config['SUBMISSIONS_DIR'],
+                            secure_filename(self.assignment.course.name),
+                            "submitted",
+                            str(self.user_id),
+                            secure_filename(self.assignment.name)
+                            )
 
+    def filename(self):
+        return self.timestamp.isoformat()+".ipynb"
 
-
-
+    def fullfilename(self):
+        return os.path.join(self.dirpath(), self.filename())
 
 # Setup Flask-Security
+
+
 class ExtendedRegisterForm(RegisterForm):
 
     first_name = StringField('First Name', [validators.DataRequired()])
@@ -206,6 +209,7 @@ def build_sample_db():
 def home():
     return render_template('index.html')
 
+
 class AssignmentForm(Form):
     active = BooleanField("Active", default=True)
     ipynb_file = FileField("Assignment ipynb file")
@@ -217,6 +221,7 @@ class AssignmentForm(Form):
     name = StringField("Name",
                        validators=[validators.DataRequired()]
                        )
+
 
 class AddAssignmentForm(AssignmentForm):
 
@@ -239,25 +244,32 @@ class AddAssignmentForm(AssignmentForm):
 
         return True
 
+
 class EditAssignmentForm(AssignmentForm):
     def __init__(self):
-        super(AssignmentForm,self).__init__()
+        super(AssignmentForm, self).__init__()
         read_only(self.name)
         read_only(self.course)
 
 # FROM http://stackoverflow.com/a/14364249/3025981
+
+
 def make_sure_path_exists(path):
     try:
         os.makedirs(path)
     except OSError:
         if not os.path.isdir(path):
             raise
+
 # END FROM
+
 
 def try_and_save(file_obj, dir_name, filename):
     """
-    Saves a file to a specified dir under specified filename
+    Saves a file from a flask-wtform.filefield to a
+    specified dir under specified filename
     If the dir does not exists, creates it
+
     :param file_obj: form.file.data to be .save()'ed
     :param dir_name: directory to save (created if not exists)
     :param filename: filename to save the file
@@ -268,7 +280,7 @@ def try_and_save(file_obj, dir_name, filename):
     try:
         file_obj.save(full_name)
     except IOError as e:
-        if e.errno==2:
+        if e.errno == 2:
             make_sure_path_exists(dir_name)
             file_obj.save(full_name)
         else:
@@ -286,7 +298,7 @@ def save_assignment_ipynb(form):
     ipynb_filename = secure_filename(form.name.data + ".ipynb")
     ipynb_dir = os.path.join(app.config['IPYNB_DIR'],
                              secure_filename(form.course.data.name))
-    return try_and_save(form.ipynb_file.data,ipynb_dir, ipynb_filename)
+    return try_and_save(form.ipynb_file.data, ipynb_dir, ipynb_filename)
 
 
 @app.route('/add/assignment', methods=["GET", "POST"])
@@ -322,7 +334,6 @@ def edit_assignment(id):
         # Precaution: `course` and `name` are read-only
         # See http://stackoverflow.com/a/16576294/3025981 for details
 
-
         if form.ipynb_file.data:
             save_assignment_ipynb(form)
         form.populate_obj(assignment)
@@ -337,7 +348,14 @@ def edit_assignment(id):
 @app.route("/list/assignments")
 @login_required
 def list_assignments():
-    return render_template("list_assignments.html")
+    submissions = current_user.submissions.all()
+    courses = current_user.courses
+    for course in courses:
+        for assignment in course.assignments:
+            assignment.submissions = [s for s in submissions if s.assignment == assignment]
+
+    return render_template("list_assignments.html",
+                           courses=courses)
 
 
 class SubmitAssignmentForm(Form):
@@ -345,6 +363,7 @@ class SubmitAssignmentForm(Form):
                            validators=[FileRequired(),
                                        FileAllowed(['ipynb'],
                                                    'ipynb files only')])
+
 
 @app.route("/submit/assignment/<id>", methods=['GET', 'POST'])
 @login_required
@@ -363,12 +382,29 @@ def submit_assignment(id):
                      )
 
         db.session.commit()
-        return redirect(url_for("home"))
+        return redirect(url_for("list_assignments"))
     return render_template("submit_assignment.html",
                            form=form,
                            assignment=assignment)
 
 
+@app.route("/get/submission_content/<id>")
+@login_required
+def get_submission_content(id):
+    """
+    Allows to get submission ipynb file
+    for the uploader of this file
+
+    :param id: submission id
+    :return:
+    """
+    submission = Submission.query.get_or_404(id)
+
+    if current_user != submission.user:
+        abort(403)
+    return Response(open(submission.fullfilename()).read(),
+                    mimetype="application/json",
+                    headers={"Content-disposition": "attachment"})
 
 # Create admin
 admin = flask_admin.Admin(
@@ -384,7 +420,6 @@ admin.add_view(MyModelView(User, db.session))
 admin.add_view(MyModelView(Course, db.session))
 admin.add_view(MyModelView(Assignment, db.session))
 admin.add_view(MyModelView(Submission, db.session))
-
 
 
 # define a context processor for merging flask-admin's template context into the
