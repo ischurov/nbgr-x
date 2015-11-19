@@ -13,13 +13,12 @@ from flask_security.forms import RegisterForm
 from flask_wtf import Form
 from wtforms import BooleanField, StringField, PasswordField, SelectMultipleField, validators
 from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField, QuerySelectField
-from wtforms.ext.sqlalchemy.orm import model_form
 from flask_bootstrap import Bootstrap
 from flask.ext.bower import Bower
 from werkzeug import secure_filename
 from flask_wtf.file import FileField
 from wtforms_components import read_only
-
+from itertools import chain
 # Create app
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
@@ -98,6 +97,8 @@ class User(db.Model, UserMixin):
                             backref=db.backref('users', lazy='dynamic'))
     courses = db.relationship('Course', secondary=courses_users,
                               backref=db.backref('users', lazy='dynamic'))
+    submissions = db.relationship('Submission', backref=db.backref('user'), lazy='dynamic')
+
 
     def __str__(self):
         return self.email
@@ -111,9 +112,26 @@ class Assignment(db.Model):
     deadline = db.Column(db.DateTime)
     name = db.Column(db.String(255))
     description = db.Column(db.String(255))
+    submissions = db.relationship('Submission', backref='assignment', lazy='dynamic')
 
     def __str__(self):
         return self.name
+
+    def ipynb_link(self):
+        return "%s/%s/%s" % (app.config['IPYNB_URL_PREFIX'],
+                             secure_filename(self.course.name),
+                             self.ipynb)
+
+class Submission(db.Model):
+   id = db.Column(db.Integer, primary_key=True)
+   assignment_id = db.Column(db.Integer, db.ForeignKey('assignment.id'))
+   user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+   timestamp = db.Column(db.DateTime())
+
+   def __str__(self):
+       return str(self.id)
+
+
 
 
 # Setup Flask-Security
@@ -229,15 +247,21 @@ def make_sure_path_exists(path):
 # END FROM
 
 def save_assignment_ipynb(form):
-        sfn = secure_filename(form.name.data + ".ipynb")
-        ipynb_dir = os.path.join(app.config['IPYNBS'],
-                                 secure_filename(form.course.data.name))
-        make_sure_path_exists(ipynb_dir)
-        ipynb_filename = os.path.join(ipynb_dir,
-                                      sfn)
+    sfn = secure_filename(form.name.data + ".ipynb")
+    ipynb_dir = os.path.join(app.config['IPYNB_DIR'],
+                             secure_filename(form.course.data.name))
+    ipynb_filename = os.path.join(ipynb_dir,
+                                  sfn)
 
+    try:
         form.ipynb_file.data.save(ipynb_filename)
-        return ipynb_filename
+    except IOError as e:
+        if e.errno==2:
+            make_sure_path_exists(ipynb_dir)
+            form.ipynb_file.data.save(ipynb_filename)
+        else:
+            raise
+    return ipynb_filename
 
 
 @app.route('/add/assignment', methods=["GET", "POST"])
@@ -263,7 +287,6 @@ def add_assignment():
 @app.route('/edit/assignment/<id>', methods=['GET', 'POST'])
 @roles_required('superuser')
 def edit_assignment(id):
-
     assignment = Assignment.query.get_or_404(id)
     form = EditAssignmentForm(obj=assignment)
 
@@ -286,6 +309,17 @@ def edit_assignment(id):
                            assignment=assignment)
 
 
+@app.route("/list/assignments")
+@login_required
+def list_assignments():
+    return render_template("list_assignments.html")
+
+
+
+@app.route("/submit/assignment/<id>", methods = ['GET', 'POST'])
+@login_required
+def submit_assignment(id):
+    assignment = Assignment.query.get_or_404(id)
 
 
 
@@ -302,6 +336,8 @@ admin.add_view(MyModelView(Role, db.session))
 admin.add_view(MyModelView(User, db.session))
 admin.add_view(MyModelView(Course, db.session))
 admin.add_view(MyModelView(Assignment, db.session))
+admin.add_view(MyModelView(Submission, db.session))
+
 
 
 # define a context processor for merging flask-admin's template context into the

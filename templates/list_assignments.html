@@ -1,0 +1,18 @@
+{% extends "bootstrap/base.html" %}
+{% block content %}
+<h1>Assignments</h1>
+<ul>
+{% for course in current_user.courses %}
+    {% if course.active %}
+    <h2>{{ course.description }}</h2>
+    <ul>
+        {% for assignment in course.assignments %}
+            <li>
+                {{ assignment.description }} <a href="{{ assignment.ipynb_link() }}">ipynb</a>
+            </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+{% endfor %}
+</ul>
+{% endblock %}
