@@ -1,18 +1,24 @@
 {% extends "bootstrap/base.html" %}
 {% block content %}
-<h1>Assignments</h1>
-<ul>
-{% for course in current_user.courses %}
-    {% if course.active %}
-    <h2>{{ course.description }}</h2>
-    <ul>
-        {% for assignment in course.assignments %}
-            <li>
-                {{ assignment.description }} <a href="{{ assignment.ipynb_link() }}">ipynb</a>
-            </li>
+<div class="row-fluid">
+    <div class="col-sm-8 col-sm-offset-2">
+        <h1>Assignments</h1>
+        <ul>
+        {% for course in current_user.courses %}
+            {% if course.active %}
+            <h2>{{ course.description }}</h2>
+            <ul>
+                {% for assignment in course.assignments %}
+                    <li>
+                        {{ assignment.description }}
+                        <a href="{{ assignment.ipynb_link() }}">ipynb</a>
+                        <a href="{{ url_for("submit_assignment", id=assignment.id) }}">submit</a>
+                    </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
         {% endfor %}
-    </ul>
-    {% endif %}
-{% endfor %}
-</ul>
+        </ul>
+        </div>
+</div>
 {% endblock %}

@@ -16,11 +16,14 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField, QuerySelectF
 from flask_bootstrap import Bootstrap
 from flask.ext.bower import Bower
 from werkzeug import secure_filename
-from flask_wtf.file import FileField
+from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms_components import read_only
+from datetime import datetime
+
 from itertools import chain
 # Create app
 app = Flask(__name__)
+
 app.config.from_pyfile('config.py')
 Bootstrap(app)
 Bower(app)
@@ -74,12 +77,6 @@ class Course(db.Model):
     assignments = db.relationship('Assignment', backref='course',
                                   lazy='dynamic')
 
-    def __init__(self, name="", year_begin=1984, active=True, description=""):
-        self.name = name
-        self.year_begin = year_begin
-        self.active = active
-        self.description = description
-
     def __str__(self):
         return self.name
 
@@ -130,6 +127,17 @@ class Submission(db.Model):
 
    def __str__(self):
        return str(self.id)
+
+   def dirpath(self):
+       return os.path.join(app.config['SUBMISSIONS_DIR'],
+                           secure_filename(self.assignment.course.name),
+                           "submitted",
+                           str(self.user_id),
+                           secure_filename(self.assignment.name)
+                           )
+   def filename(self):
+       return self.timestamp.isoformat()+".ipynb"
+
 
 
 
@@ -246,22 +254,39 @@ def make_sure_path_exists(path):
             raise
 # END FROM
 
-def save_assignment_ipynb(form):
-    sfn = secure_filename(form.name.data + ".ipynb")
-    ipynb_dir = os.path.join(app.config['IPYNB_DIR'],
-                             secure_filename(form.course.data.name))
-    ipynb_filename = os.path.join(ipynb_dir,
-                                  sfn)
+def try_and_save(file_obj, dir_name, filename):
+    """
+    Saves a file to a specified dir under specified filename
+    If the dir does not exists, creates it
+    :param file_obj: form.file.data to be .save()'ed
+    :param dir_name: directory to save (created if not exists)
+    :param filename: filename to save the file
+    :return: os.path.join(dir, filename)
+    """
+    full_name = os.path.join(dir_name, filename)
 
     try:
-        form.ipynb_file.data.save(ipynb_filename)
+        file_obj.save(full_name)
     except IOError as e:
         if e.errno==2:
-            make_sure_path_exists(ipynb_dir)
-            form.ipynb_file.data.save(ipynb_filename)
+            make_sure_path_exists(dir_name)
+            file_obj.save(full_name)
         else:
             raise
-    return ipynb_filename
+    return full_name
+
+
+def save_assignment_ipynb(form):
+    """
+    Saves an assignment from the form
+    :param form: the form to get assignment data from
+    :return: the full name of the ipynb-file
+    """
+
+    ipynb_filename = secure_filename(form.name.data + ".ipynb")
+    ipynb_dir = os.path.join(app.config['IPYNB_DIR'],
+                             secure_filename(form.course.data.name))
+    return try_and_save(form.ipynb_file.data,ipynb_dir, ipynb_filename)
 
 
 @app.route('/add/assignment', methods=["GET", "POST"])
@@ -292,8 +317,8 @@ def edit_assignment(id):
 
     if request.method == 'POST' and form.validate():
 
-        del(form.course)
-        del(form.name)
+        del form.course
+        del form.name
         # Precaution: `course` and `name` are read-only
         # See http://stackoverflow.com/a/16576294/3025981 for details
 
@@ -315,11 +340,33 @@ def list_assignments():
     return render_template("list_assignments.html")
 
 
+class SubmitAssignmentForm(Form):
+    ipynb_file = FileField("ipynb file",
+                           validators=[FileRequired(),
+                                       FileAllowed(['ipynb'],
+                                                   'ipynb files only')])
 
-@app.route("/submit/assignment/<id>", methods = ['GET', 'POST'])
+@app.route("/submit/assignment/<id>", methods=['GET', 'POST'])
 @login_required
 def submit_assignment(id):
     assignment = Assignment.query.get_or_404(id)
+    form = SubmitAssignmentForm()
+    if form.validate_on_submit():
+        submission = Submission()
+        submission.assignment = assignment
+        submission.user = current_user
+        submission.timestamp = datetime.today()
+
+        try_and_save(form.ipynb_file.data,
+                     submission.dirpath(),
+                     submission.filename()
+                     )
+
+        db.session.commit()
+        return redirect(url_for("home"))
+    return render_template("submit_assignment.html",
+                           form=form,
+                           assignment=assignment)
 
 
 

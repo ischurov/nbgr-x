@@ -1,0 +1,20 @@
+{% extends "bootstrap/base.html" %}
+
+{% from "security/_macros.html" import render_field_with_errors, render_field %}
+{% include "security/_messages.html" %}
+{% block content %}
+<div class="row-fluid">
+    <div class="col-sm-8 col-sm-offset-2">
+        <h1>Submit Assignment</h1>
+        <h2>{{ assignment.description }}</h2>
+        <div class="well">
+            <form action="{{ url_for('submit_assignment', id=assignment.id) }}" method="POST" name="form" enctype="multipart/form-data">
+                {{ form.csrf_token }}
+                {{ render_field_with_errors(form.ipynb_file) }}
+                <input type="submit" value="Go">
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
