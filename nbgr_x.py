@@ -394,6 +394,11 @@ class Submission(db.Model):
         )
         return submission_process_dir
 
+    def feedback_file(self):
+        return os.path.join(self.process_dir('feedback'),
+                            self.assignment.ipynb_filename().replace(".ipynb", ".html")
+                            )
+
 
 # Setup Flask-Security
 
@@ -448,6 +453,10 @@ def autograde(submission_id):
     """
 
     submission = Submission.query.get(submission_id)
+
+    submission.autograded_status = 'processing'
+    db.session.commit()
+
     user = submission.user
     assignment = submission.assignment
     course = assignment.course
@@ -681,12 +690,20 @@ def edit_assignment(id):
 def list_assignments():
     submissions = current_user.submissions.all()
     courses = current_user.courses
+    mycourses = []
     for course in courses:
+        mycourse={'description': course.description,
+                  'active': course.active, 'assignments': []}
+
         for assignment in course.assignments:
-            assignment.submissions = [s for s in submissions if s.assignment == assignment]
+            mycourse['assignments'].append({
+                'data':assignment,
+                'submissions':[s for s in submissions if s.assignment == assignment]
+            })
+        mycourses.append(mycourse)
 
     return render_template("list_assignments.html",
-                           courses=courses)
+                           mycourses=mycourses)
 
 
 class SubmitAssignmentForm(Form):
@@ -715,6 +732,9 @@ def submit_assignment(id):
                      submission.filename())
 
         db.session.commit()
+
+        autograde.delay(submission.id)
+
         return redirect(url_for("list_assignments"))
 
     return render_template("submit_assignment.html",
@@ -736,9 +756,24 @@ def get_submission_content(id):
 
     if current_user != submission.user:
         abort(403)
-    return Response(open(submission.fullfilename()).read(),
+    with open(submission.fullfilename()) as f:
+        resp = f.read()
+    return Response(resp,
                     mimetype="application/json",
                     headers={"Content-disposition": "attachment"})
+
+@app.route("/get/feedback/<id>")
+@login_required
+def get_feedback(id):
+    submission = Submission.query.get_or_404(id)
+
+    if current_user != submission.user:
+        abort(403)
+    with open(submission.feedback_file()) as f:
+        resp = f.read()
+    return Response(resp,
+                    mimetype="text/html")
+
 
 # Create admin
 admin = flask_admin.Admin(

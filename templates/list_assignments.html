@@ -3,35 +3,56 @@
 <div class="row-fluid">
     <div class="col-sm-8 col-sm-offset-2">
         <h1>Assignments</h1>
-        <ul>
-        {% for course in courses %}
-            {% if course.active %}
-            <li>{{ course.description }}</li>
-            <ul>
-                {% for assignment in course.assignments %}
-                    <li>
-                        {{ assignment.description }}
-                        <a href="{{ assignment.ipynb_link() }}">ipynb</a>
-                        <a href="{{ url_for("submit_assignment", id=assignment.id) }}">submit</a>
-                        {% if assignment.submissions %}
-                        <p>Your submissions:</p>
+        {% for course in mycourses %}
+            {% if course['active'] %}
+            <h2>{{ course['description'] }}</h2>
+            <table class="table table-striped table-bordered table-hove">
+                <tr>
+                    <th>
+                        Assignment
+                    </th>
+                    <th>Deadline</th>
+                    <th>Submissions</th>
+                </tr>
+                {% for assignment in course['assignments'] %}
+                    <tr>
+                        <td>
+                            {{ assignment['data'].description }} [<a href="{{ assignment['data'].ipynb_link() }}">ipynb</a>]
+                        </td>
+                        <td>
+                            {{ assignment['data'].deadline.strftime("%Y-%m-%d %H:%M:%S") }}
+                        </td>
+                        <td>
+                        {% if assignment['submissions'] %}
+
                         <ul>
-                            {% for submission in assignment.submissions %}
+                            {% for submission in assignment['submissions'] %}
                             <li>
                                 <a href="{{ url_for("get_submission_content", id=submission.id) }}">
-                                {{ submission }}
+                                {{ submission.timestamp }}
                                 </a>
+                                {% if submission.autograded_status == 'autograded' %}
+                                <a href="{{ url_for("get_feedback", id=submission.id) }}">feedback</a>
+                                {% elif  submission.autograded_status == 'processing' %}
+                                autograding... (refresh page to see results)
+                                {% elif submission.autograded_status == 'failed' %}
+                                FAILED: {{ submission.autograded_log }}
+                                {% endif %}
+
+
                             </li>
                             {% endfor %}
                         </ul>
                         {% endif %}
+                            <a href="{{ url_for("submit_assignment", id=assignment['data'].id) }}">submit</a>
 
-                    </li>
+                        </td>
+
+                    </tr>
                 {% endfor %}
-            </ul>
+            </table>
             {% endif %}
         {% endfor %}
-        </ul>
         </div>
 </div>
 {% endblock %}
