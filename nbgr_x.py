@@ -21,11 +21,45 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms_components import read_only
 from datetime import datetime
 
-from itertools import chain
-# Create app
-app = Flask(__name__)
+import subprocess
+import shutil
+import re
 
+import time
+
+# from itertools import chain
+# Create app
+
+from celery import Celery
+
+def make_celery(app):
+    celery = Celery(app.import_name, broker=app.config['CELERY_BROKER_URL'])
+    celery.conf.update(app.config)
+    TaskBase = celery.Task
+    class ContextTask(TaskBase):
+        abstract = True
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return TaskBase.__call__(self, *args, **kwargs)
+    celery.Task = ContextTask
+    return celery
+
+
+app = Flask(__name__)
+MYPATH = os.path.dirname(os.path.realpath(__file__))
 app.config.from_pyfile('config.py')
+app.config.update(dict(
+    MYPATH=MYPATH,
+    PYTHON=os.path.join(MYPATH, "env", "bin", "python"),
+    NBGRADER=os.path.join(MYPATH, "env", "bin", "nbgrader")))
+
+app.config.update(
+    CELERY_BROKER_URL='redis://localhost:6379',
+    CELERY_RESULT_BACKEND='redis://localhost:6379'
+)
+
+celery = make_celery(app)
+
 Bootstrap(app)
 Bower(app)
 # app.config['SECRET_KEY'] = 'secret'
@@ -60,6 +94,7 @@ courses_users = db.Table('courses_users',
                          db.Column('course_id', db.Integer(), db.ForeignKey('course.id')))
 
 
+
 class Role(db.Model, RoleMixin):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(80), unique=True)
@@ -81,6 +116,66 @@ class Course(db.Model):
     def __str__(self):
         return self.name
 
+    def assignments_process_dir(self):
+        """
+        This is 'course_id' folder in terms of nbgrader
+
+        Here located:
+        - gradebook
+        - source assignments
+        - released assignments
+
+        :return: path
+        """
+        return os.path.join(app.config['ASSIGNMENTS_PROCESS_DIR'],
+                            secure_filename(self.name))
+
+    def assignments_release_dir(self):
+        return os.path.join(app.config['ASSIGNMENTS_RELEASE_DIR'],
+                            secure_filename(self.name))
+
+
+    def assignments_process_jail(self):
+        """
+        this is jail where submission files are placed
+
+        pathes is like
+
+        assignments_process_jail/submission_id/submitted
+
+        have to be mounted to
+
+        course_id/submitted
+
+        :return: path
+        """
+        return os.path.join(app.config['ASSIGNMENTS_PROCESS_DIR'],
+                            'jail',
+                            secure_filename(self.name))
+
+
+    def gradebook_file(self):
+        return os.path.join(
+            self.assignments_process_dir(),
+            "gradebook.db"
+        )
+
+    def backup_gradebook(self):
+        backup_dir = os.path.join(
+            app.config('BACKUP_DIR'),
+            "gradebooks",
+            secure_filename(self.name)
+        )
+        make_sure_path_exists(backup_dir)
+        shutil.copyfile(
+            self.gradebook_file(),
+            os.path.join(
+                backup_dir,
+                datetime.today().isoformat()+".db"
+            )
+        )
+
+
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -98,14 +193,39 @@ class User(db.Model, UserMixin):
     submissions = db.relationship('Submission', backref=db.backref('user'), lazy='dynamic')
 
     def __str__(self):
-        return self.email
+        return "user"+str(self.id)
+
+
+def try_and_save(file_obj, dir_name, filename):
+    """
+    Saves a file from a flask-wtform.filefield to a
+    specified dir under specified filename
+    If the dir does not exists, creates it
+
+    :param file_obj: form.file.data to be .save()'ed
+    :param dir_name: directory to save (created if not exists)
+    :param filename: filename to save the file
+    :return: os.path.join(dir, filename)
+    """
+    full_name = os.path.join(dir_name, filename)
+
+    try:
+        file_obj.save(full_name)
+    except IOError as e:
+        if e.errno == 2:
+            make_sure_path_exists(dir_name)
+            file_obj.save(full_name)
+        else:
+            raise
+    return full_name
 
 
 class Assignment(db.Model):
+
     id = db.Column(db.Integer, primary_key=True)
     active = db.Column(db.Boolean())
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'))
-    ipynb = db.Column(db.String(255))
+#    ipynb = db.Column(db.String(255))
     deadline = db.Column(db.DateTime)
     name = db.Column(db.String(255))
     description = db.Column(db.String(255))
@@ -115,9 +235,90 @@ class Assignment(db.Model):
         return self.name
 
     def ipynb_link(self):
-        return "%s/%s/%s" % (app.config['IPYNB_URL_PREFIX'],
+        # FIXME
+        return "%s/%s/%s" % (app.config['ASSIGNMENTS_URL_PREFIX'],
                              secure_filename(self.course.name),
-                             self.ipynb)
+                             self.ipynb_filename())
+
+    def ipynb_process_dir(self, step):
+        """
+        Returns a path to assignment's dir (before or after processing)
+        Note that 'release' here means internal release directory
+        For world-readable 'release' directory,
+        see ipynb_release_dir()
+        :param stage: either 'source' or 'release'
+        :return:
+        """
+        return os.path.join(self.course.assignments_process_dir(),
+                            step,
+                            secure_filename(self.name))
+
+    def ipynb_release_dir(self):
+        """
+        Returns a path to the released assignment's dir
+        (World-readable)
+        :return: str
+        """
+        return os.path.join(self.course.assignments_release_dir(),
+                            secure_filename(self.name))
+
+    def ipynb_filename(self):
+        """
+        returns filename for ipynb (usually self.name+".ipynb")
+        :return: str
+        """
+        return secure_filename(self.name + ".ipynb")
+
+
+    def save_ipynb(self, ipynb_file):
+        """
+        Saves an assignment from the form
+        :param ipynb_file: form.file.data-style ipynb-file
+        :return: the full name of the ipynb-file
+        """
+        ipynb_filename = self.ipynb_filename()
+        ipynb_dir = self.ipynb_process_dir('source')
+
+        return try_and_save(ipynb_file, ipynb_dir, ipynb_filename)
+
+    def process_ipynb(self, update = False, logfile = None):
+        """
+        Processes assignment nb with nbgrader assign
+        :param update: update already processed file (gives --force
+        flag instead of --create)
+        :return: nothing
+        """
+        os.chdir(self.course.assignments_process_dir())
+        if update:
+            mode = '--force'
+        else:
+            mode = '--create'
+        if logfile:
+            log = open(logfile, "a")
+            log.write(datetime.today().isoformat()+"\n")
+        else:
+            log = None
+
+        subprocess.call([app.config['PYTHON'],
+                         app.config['NBGRADER'],
+                         "assign",
+                         secure_filename(self.name),
+                         mode], stderr=log)
+        if logfile:
+            log.close()
+
+        make_sure_path_exists(self.ipynb_release_dir())
+        shutil.copyfile(
+            os.path.join(
+                self.ipynb_process_dir('source'),
+                self.ipynb_filename()
+            ),
+            os.path.join(
+                self.ipynb_release_dir(),
+                self.ipynb_filename()
+            )
+        )
+
 
 
 class Submission(db.Model):
@@ -125,9 +326,12 @@ class Submission(db.Model):
     assignment_id = db.Column(db.Integer, db.ForeignKey('assignment.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     timestamp = db.Column(db.DateTime())
+    autograded_status = db.Column(db.String(32))
+    autograded_log = db.Column(db.String(256))
+
 
     def __str__(self):
-        return str(self.id)
+        return "submission{}".format(self.id)
 
     def dirpath(self):
         return os.path.join(app.config['SUBMISSIONS_DIR'],
@@ -142,6 +346,54 @@ class Submission(db.Model):
 
     def fullfilename(self):
         return os.path.join(self.dirpath(), self.filename())
+
+    def process_root(self, step=None):
+        """
+        This is a path to directory in jail where submission processing is made.
+
+        Example:
+
+            {APD}/jail/{course_id}/{submission_id}/step
+
+        Have to be mounted to course_id/step in docker
+
+        If step is not presented, it's like ''
+
+        :param step: nbgrader step
+        :return: path
+        """
+
+        assignment = self.assignment
+        course = assignment.course
+
+        parts = [
+            course.assignments_process_jail(), # {course_directory}
+            str(self), # hack to process different assignments concurently
+        ]
+        if step:
+            parts.append(step)
+        root = os.path.join(*parts)
+        return root
+
+    def process_dir(self, step):
+        """
+        Returns individual process dir path to the submission like the following
+
+        {APD}/jail/{course_id}/{submission_id}/step/{student_id}/{assignment_id}
+
+        :param step: nbgrader step (like 'submitted', 'autograded', 'feedback')
+        :return: path
+        """
+        user = self.user
+        assignment = self.assignment
+
+        submission_process_dir = os.path.join(
+            self.process_root(step),
+            str(user), # {student_id}
+            secure_filename(assignment.name) # {assignment_id}
+        )
+        return submission_process_dir
+
 
 # Setup Flask-Security
 
@@ -161,7 +413,6 @@ user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 security = Security(app, user_datastore,
                     confirm_register_form=ExtendedRegisterForm,
                     register_form=ExtendedRegisterForm)
-
 
 class MyModelView(sqla.ModelView):
     def is_accessible(self):
@@ -184,6 +435,116 @@ class MyModelView(sqla.ModelView):
             else:
                 # login
                 return redirect(url_for('security.login', next=request.url))
+
+
+@celery.task()
+def autograde(submission_id):
+    """
+    Autogrades submission with given submission_id
+    in the background
+
+    :param submission_id: submission.id
+    :return: None
+    """
+
+    submission = Submission.query.get(submission_id)
+    user = submission.user
+    assignment = submission.assignment
+    course = assignment.course
+
+    steps =  ['submitted', 'autograded', 'feedback']
+    for step in steps:
+        make_sure_path_exists(submission.process_dir(step))
+
+    shutil.copyfile(
+        submission.fullfilename(),
+        os.path.join(
+            submission.process_dir('submitted'),
+            assignment.ipynb_filename()
+        )
+    )
+
+    ts_format = "%Y-%m-%d %H:%M:%S %Z"
+
+    with open(os.path.join(submission.process_dir('submitted'),"timestamp.txt"), "w") as f:
+        f.write(submission.timestamp.strftime(ts_format))
+
+    # docker run --rm -v /Users/user/prj/hse/all-python/nbgrader:/assignments/
+    #   jupyter/nbgrader autograde ps4 --create
+
+    mountpoints = ['-v', course.assignments_process_dir()+":/assignments/"]
+    for step in steps:
+        make_sure_path_exists(submission.process_dir(step))
+        mountpoints.extend(['-v', "{}:/assignments/{}".
+                           format(submission.process_root(step),step)])
+
+    env = os.environ
+    if app.config['MAC_OS']:
+        env_str = subprocess.check_output(['bash', '-c', 'docker-machine env default'])
+        for line in env_str.splitlines():
+            m = re.match(r'export\s+(\w+)="([^"]+)"', line)
+            if m:
+                key = m.group(1)
+                value=m.group(2)
+
+                env[key] = value
+                print "DEBUG: %s => %s" % (key, value)
+
+    try:
+        command = [
+            'docker', 'run', '--rm'] + mountpoints + [
+            "jupyter/nbgrader",
+            "autograde",
+            secure_filename(assignment.name),
+            "--student",
+            str(user),
+            "--create",
+            '--force'
+        ]
+
+        print "DEBUG: " + " ".join(command)
+
+        submission.autograded_log = subprocess.check_output(
+            command, stderr=subprocess.STDOUT, env=env)
+
+        submission.autograded_status = 'autograded'
+
+        try:
+            command = [
+                'docker', 'run', '--rm'] + mountpoints + [
+                "jupyter/nbgrader",
+                "feedback",
+                secure_filename(assignment.name),
+                "--student",
+                str(user),
+                '--force'
+            ]
+
+            print "DEBUG: " + " ".join(command)
+
+            subprocess.check_output(
+                command, stderr=subprocess.STDOUT, env=env)
+
+        except subprocess.CalledProcessError as error:
+            submission.autograded_status = 'error_on_feedback'
+            submission.autograded_log = error
+
+    except subprocess.CalledProcessError as error:
+        submission.autograded_log = error.output
+        submission.autograded_status = 'failed'
+
+
+
+    db.session.commit()
+
+@login_required
+@roles_required(['superuser'])
+@app.route("/_auto_grade/<id>")
+def do_pseudo_grade(id):
+    submission = Submission.query.get_or_404(id)
+    autograde.delay(submission.id)
+    return redirect(url_for('list_assignments'))
+
 
 
 # Create a user to test with
@@ -241,7 +602,6 @@ class AddAssignmentForm(AssignmentForm):
             self.ipynb_file.errors.append("Please, upload ipynb file")
             return False
 
-
         return True
 
 
@@ -264,41 +624,7 @@ def make_sure_path_exists(path):
 # END FROM
 
 
-def try_and_save(file_obj, dir_name, filename):
-    """
-    Saves a file from a flask-wtform.filefield to a
-    specified dir under specified filename
-    If the dir does not exists, creates it
 
-    :param file_obj: form.file.data to be .save()'ed
-    :param dir_name: directory to save (created if not exists)
-    :param filename: filename to save the file
-    :return: os.path.join(dir, filename)
-    """
-    full_name = os.path.join(dir_name, filename)
-
-    try:
-        file_obj.save(full_name)
-    except IOError as e:
-        if e.errno == 2:
-            make_sure_path_exists(dir_name)
-            file_obj.save(full_name)
-        else:
-            raise
-    return full_name
-
-
-def save_assignment_ipynb(form):
-    """
-    Saves an assignment from the form
-    :param form: the form to get assignment data from
-    :return: the full name of the ipynb-file
-    """
-
-    ipynb_filename = secure_filename(form.name.data + ".ipynb")
-    ipynb_dir = os.path.join(app.config['IPYNB_DIR'],
-                             secure_filename(form.course.data.name))
-    return try_and_save(form.ipynb_file.data, ipynb_dir, ipynb_filename)
 
 
 @app.route('/add/assignment', methods=["GET", "POST"])
@@ -308,15 +634,18 @@ def add_assignment():
     form = AddAssignmentForm()
 
     if request.method == 'POST' and form.validate():
-        ipynb_filename = save_assignment_ipynb(form)
 
         new_assignment = Assignment()
         form.populate_obj(new_assignment)
-        new_assignment.ipynb = ipynb_filename
+
+        new_assignment.save_ipynb(form.ipynb_file.data)
+
+        new_assignment.process_ipynb(logfile="log.log")
 
         db.session.add(new_assignment)
         db.session.commit()
-        return redirect(url_for('home'))
+
+        return redirect(url_for('edit_assignment', id=new_assignment.id))
 
     return render_template('tweak_assignment.html', form=form, mode='add')
 
@@ -335,7 +664,9 @@ def edit_assignment(id):
         # See http://stackoverflow.com/a/16576294/3025981 for details
 
         if form.ipynb_file.data:
-            save_assignment_ipynb(form)
+            assignment.save_ipynb(form.ipynb_file.data)
+            assignment.process_ipynb(update=True, logfile='log.log')
+
         form.populate_obj(assignment)
         db.session.commit()
         return redirect(url_for('home'))
@@ -368,9 +699,12 @@ class SubmitAssignmentForm(Form):
 @app.route("/submit/assignment/<id>", methods=['GET', 'POST'])
 @login_required
 def submit_assignment(id):
+
     assignment = Assignment.query.get_or_404(id)
     form = SubmitAssignmentForm()
+
     if form.validate_on_submit():
+
         submission = Submission()
         submission.assignment = assignment
         submission.user = current_user
@@ -378,11 +712,11 @@ def submit_assignment(id):
 
         try_and_save(form.ipynb_file.data,
                      submission.dirpath(),
-                     submission.filename()
-                     )
+                     submission.filename())
 
         db.session.commit()
         return redirect(url_for("list_assignments"))
+
     return render_template("submit_assignment.html",
                            form=form,
                            assignment=assignment)
@@ -433,9 +767,9 @@ def security_context_processor():
     )
 
 
-if __name__ == '__main__':
-    app_dir = os.path.realpath(os.path.dirname(__file__))
-    database_path = os.path.join(app_dir, app.config['DATABASE_FILE'])
-    if not os.path.exists(database_path):
-        build_sample_db()
-    app.run()
+#if __name__ == '__main__':
+#    app_dir = os.path.realpath(os.path.dirname(__file__))
+#    database_path = os.path.join(app_dir, app.config['DATABASE_FILE'])
+#    if not os.path.exists(database_path):
+#        build_sample_db()
+#    app.run()
