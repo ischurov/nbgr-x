@@ -38,3 +38,6 @@ MAC_OS = True
 # So we need additional things to do with docker
 
 IPYNB_LINK_TEMPLATE = "{url_prefix}/{course_name}/{ipynb_filename}"
+
+# Local only
+DEBUG = True

@@ -65,7 +65,6 @@ Bower(app)
 # app.config['SECRET_KEY'] = 'secret'
 # app.config['SQLALCHEMY_DATABASE_URI'] = \
 #        'sqlite:////srv/data/nbgr-x/2015-16/students.sqlite'
-app.config['DEBUG'] = True
 
 # 'SECURITY_CONFIRMABLE',
 # for field in ['SECURITY_REGISTERABLE','SECURITY_RECOVERABLE', 'SECURITY_LOGIN_WITHOUT_CONFIRMATION']:
