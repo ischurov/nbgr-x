@@ -1,0 +1,48 @@
+{% extends "bootstrap/base.html" %}
+
+{% from "security/_macros.html" import render_field_with_errors, render_field %}
+{% include "security/_messages.html" %}
+{% block content %}
+  <script type="text/javascript" src="{{ url_for('bower.static',filename="jquery/dist/jquery.js") }}"></script>
+  <script type="text/javascript" src="{{ url_for('bower.static',filename="moment/min/moment.min.js") }}"></script>
+  <script type="text/javascript" src="{{ url_for('bower.static',filename="eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js") }}"></script>
+  <link rel="stylesheet" href="{{ url_for("bower.static",filename="bootstrap/dist/css/bootstrap.min.css") }}" />
+  <link rel="stylesheet" href="{{ url_for("bower.static",filename="eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css") }}" />
+<script type="text/javascript">
+            $(function () {
+                $('.datetimepicker').datetimepicker({format:"YYYY-MM-DD HH:MM:SS"});
+            });
+        </script>
+<div class="row-fluid">
+    <div class="col-sm-8 col-sm-offset-2">
+        <h1>{{ mode.capitalize() }} Assignment</h1>
+        <div class="well">
+            {% if mode == 'add' %}
+            <form action="{{ url_for('add_assignment') }}" method="POST" name="form" enctype="multipart/form-data">
+            {% elif mode == 'edit' %}
+            <form action="{{ url_for('edit_assignment', id = assignment.id) }}" method="POST" name="form" enctype="multipart/form-data">
+            {% endif %}
+                {{ form.csrf_token }}
+                {{ render_field_with_errors(form.active) }}
+                {{ render_field_with_errors(form.ipynb_file) }}
+                {{ form.deadline(class="datetimepicker") }}
+                    {% if form.deadline.errors %}
+      <ul>
+      {% for error in form.deadline.errors %}
+        <li>{{ error }}</li>
+      {% endfor %}
+      </ul>
+    {% endif %}
+                {{ render_field_with_errors(form.course) }}
+                {{ render_field_with_errors(form.name) }}
+                {{ render_field_with_errors(form.description) }}
+<input type="submit" value="Go">
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}
