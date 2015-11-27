@@ -2,17 +2,17 @@
 {% block content %}
 <div class="row-fluid">
     <div class="col-sm-8 col-sm-offset-2">
-        <h1>Assignments</h1>
+        <h1>Задания</h1>
         {% for course in mycourses %}
             {% if course['active'] %}
             <h2>{{ course['description'] }}</h2>
             <table class="table table-striped table-bordered table-hove">
                 <tr>
                     <th>
-                        Assignment
+                        Задание
                     </th>
-                    <th>Deadline</th>
-                    <th>Submissions</th>
+                    <th>Срок сдачи</th>
+                    <th>Загруженные работы</th>
                 </tr>
                 {% for assignment in course['assignments'] %}
                     <tr>
@@ -32,23 +32,21 @@
                                 {{ submission.timestamp }}
                                 </a>
                                 {% if submission.autograded_status == 'autograded' %}
-                                <a href="{{ url_for("get_feedback", id=submission.id) }}">feedback</a>
+                                <br/><a href="{{ url_for("get_feedback", id=submission.id) }}">Результаты проверки</a>.
                                 {% elif  submission.autograded_status == 'processing' %}
-                                autograding... (refresh page to see results)
+                                <br/>Идёт автоматическая проверка (обновите страницу через некоторое время).
                                 {% elif submission.autograded_status == 'failed' %}
-                                FAILED: {{ submission.autograded_log }}
+                                <br/>ОШИБКА: {{ submission.autograded_log }}
                                 {% elif submission.autograded_status == 'late' %}
-                                Not graded: submitted after deadline. Ask instructor for manual grading.
+                                <br/>Проверка не производится: работа сдана после дедлайна. Пожалуйста, обратитесь к преподавателю, если считаете, что работа всё равно должна быть проверена.
                                 {% elif submission.autograded_status == 'sent-to-grading' %}
-                                Sent to grading, now in grading queue.
+                                <br/>Работа ожидает автоматической проверки, но все роботы-проверяльщики заняты. Обновите страницу через некоторое время.
                                 {% endif %}
-
-
                             </li>
                             {% endfor %}
                         </ul>
                         {% endif %}
-                            <a href="{{ url_for("submit_assignment", id=assignment['data'].id) }}">submit</a>
+                            <a href="{{ url_for("submit_assignment", id=assignment['data'].id) }}">загрузить работу</a>
 
                         </td>
 

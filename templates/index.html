@@ -1,7 +1,11 @@
-<html>
-    <body>
-        <div>
-            <a href="{{ url_for('admin.index') }}">Go to admin!</a>
-        </div>
-    </body>
-</html>
+{% extends "bootstrap/base.html" %}
+
+{% from "security/_macros.html" import render_field_with_errors, render_field %}
+{% include "security/_messages.html" %}
+{% block content %}
+<h1>nbgr-x: notebook grading system</h1>
+<h2>PythonHSE</h2>
+<p>Please,
+    <a href="{{ url_for('security.login') }}">login</a> or
+    <a href="{{ url_for('security.register') }}">register</a>.</p>
+{% endblock %}

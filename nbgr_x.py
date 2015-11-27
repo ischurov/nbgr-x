@@ -235,10 +235,10 @@ class Assignment(db.Model):
         return self.name
 
     def ipynb_link(self):
-        # FIXME
-        return "%s/%s/%s" % (app.config['ASSIGNMENTS_URL_PREFIX'],
-                             secure_filename(self.course.name),
-                             self.ipynb_filename())
+        return app.config['IPYNB_LINK_TEMPLATE'].format(
+            url_prefix=app.config['ASSIGNMENTS_URL_PREFIX'], ipynb_filename=self.ipynb_filename(),
+            course_name=secure_filename(self.course.name)
+        )
 
     def ipynb_process_dir(self, step):
         """
@@ -409,7 +409,7 @@ class ExtendedRegisterForm(RegisterForm):
     last_name = StringField('Last Name', [validators.DataRequired()])
     #    active_courses = Course.query.filter_by(active = True).all()
     #    courses_choices = [(c.id, c.description) for c in active_courses]
-    courses = QuerySelectMultipleField(
+    courses = QuerySelectMultipleField('Courses', [validators.DataRequired()],
         query_factory=lambda: Course.query.filter_by(active=True),
         get_label='description')
 
@@ -574,10 +574,10 @@ def build_sample_db():
 
 
 # Views
-@app.route('/')
-@login_required
-def home():
-    return render_template('index.html')
+#@app.route('/')
+#@login_required
+#def home():
+#    return render_template('index.html')
 
 
 class AssignmentForm(Form):
@@ -684,7 +684,7 @@ def edit_assignment(id):
                            mode='edit',
                            assignment=assignment)
 
-
+@app.route('/')
 @app.route("/list/assignments")
 @login_required
 def list_assignments():
@@ -702,7 +702,7 @@ def list_assignments():
             })
         mycourses.append(mycourse)
 
-    return render_template("list_assignments.html",
+    return render_template("list_assignments_ru.html",
                            mycourses=mycourses)
 
 
@@ -731,9 +731,15 @@ def submit_assignment(id):
                      submission.dirpath(),
                      submission.filename())
 
+        if assignment.deadline and submission.timestamp <= assignment.deadline:
+            submission.autograded_status = 'sent-to-grading'
+            autograde.delay(submission.id)
+        else:
+            submission.autograded_status = 'late'
+
         db.session.commit()
 
-        autograde.delay(submission.id)
+
 
         return redirect(url_for("list_assignments"))
 
