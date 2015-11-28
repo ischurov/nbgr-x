@@ -677,7 +677,7 @@ def edit_assignment(id):
 
         form.populate_obj(assignment)
         db.session.commit()
-        return redirect(url_for('home'))
+        return redirect(url_for('edit_assignment', id=id))
     return render_template('tweak_assignment.html',
                            form=form,
                            mode='edit',
