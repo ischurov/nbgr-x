@@ -29,8 +29,8 @@
                             {% for submission in assignment['submissions'] %}
                             <li>
                                 <a href="{{ url_for("get_submission_content", id=submission.id) }}">
-                                {{ submission.timestamp }}
-                                </a>
+                                #{{ submission.id }}
+                                </a> ({{ submission.timestamp }})
                                 {% if submission.autograded_status == 'autograded' %}
                                 <br/><a href="{{ url_for("get_feedback", id=submission.id) }}">Результаты проверки</a>.
                                 {% elif  submission.autograded_status == 'processing' %}
