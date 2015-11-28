@@ -281,11 +281,12 @@ class Assignment(db.Model):
 
         return try_and_save(ipynb_file, ipynb_dir, ipynb_filename)
 
-    def process_ipynb(self, update = False, logfile = None):
+    def process_ipynb(self, update = False, logfile = None, codestub="# YOUR CODE HERE"):
         """
         Processes assignment nb with nbgrader assign
         :param update: update already processed file (gives --force
         flag instead of --create)
+        :param codestub: code stub string
         :return: nothing
         """
         os.chdir(self.course.assignments_process_dir())
@@ -303,7 +304,10 @@ class Assignment(db.Model):
                          app.config['NBGRADER'],
                          "assign",
                          secure_filename(self.name),
-                         mode], stderr=log)
+                         mode,
+                        '--ClearSolutions.code_stub',
+                         codestub],
+                        stderr=log)
         if logfile:
             log.close()
 
