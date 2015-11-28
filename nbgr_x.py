@@ -310,7 +310,7 @@ class Assignment(db.Model):
         make_sure_path_exists(self.ipynb_release_dir())
         shutil.copyfile(
             os.path.join(
-                self.ipynb_process_dir('source'),
+                self.ipynb_process_dir('release'),
                 self.ipynb_filename()
             ),
             os.path.join(
