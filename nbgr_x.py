@@ -236,7 +236,8 @@ class Assignment(db.Model):
     def ipynb_link(self):
         return app.config['IPYNB_LINK_TEMPLATE'].format(
             url_prefix=app.config['ASSIGNMENTS_URL_PREFIX'], ipynb_filename=self.ipynb_filename(),
-            course_name=secure_filename(self.course.name)
+            assignment=secure_filename(self.name),
+            course_name=secure_filename(self.course.name),
         )
 
     def ipynb_process_dir(self, step):
