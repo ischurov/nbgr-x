@@ -759,7 +759,7 @@ def get_submission_content(id):
     """
     submission = Submission.query.get_or_404(id)
 
-    if current_user != submission.user:
+    if current_user != submission.user and not current_user.has_role('superuser'):
         abort(403)
     with open(submission.fullfilename()) as f:
         resp = f.read()
@@ -772,7 +772,7 @@ def get_submission_content(id):
 def get_feedback(id):
     submission = Submission.query.get_or_404(id)
 
-    if current_user != submission.user:
+    if current_user != submission.user and not current_user.has_role('superuser'):
         abort(403)
     with open(submission.feedback_file()) as f:
         resp = f.read()
