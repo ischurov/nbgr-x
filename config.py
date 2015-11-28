@@ -2,7 +2,7 @@
 SECRET_KEY = 'ahieph3VeiXooz2uwee3keesiequeeke'
 
 # Create in-memory database
-DATABASE_FILE = 'sample_db.sqlite'
+DATABASE_FILE = '/srv/nbgr-x/sample_db.sqlite'
 SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DATABASE_FILE
 SQLALCHEMY_ECHO = False
 
@@ -22,7 +22,8 @@ SECURITY_POST_REGISTER_VIEW = "/"
 
 # Flask-Security features
 SECURITY_REGISTERABLE = True
-SECURITY_SEND_REGISTER_EMAIL = False
+SECURITY_CONFIRMABLE = True
+SECURITY_SEND_REGISTER_EMAIL = True
 
 NBGRX_PREFIX = "/srv/nbgr-x"
 
