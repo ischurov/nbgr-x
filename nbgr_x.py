@@ -305,7 +305,7 @@ class Assignment(db.Model):
                          "assign",
                          secure_filename(self.name),
                          mode,
-                        '--ClearSolutions.code_stub',
+                        '--ClearSolutions.code_stub="%s"' %
                          codestub],
                         stderr=log)
         if logfile:
