@@ -614,8 +614,8 @@ class AddAssignmentForm(AssignmentForm):
 
 
 class EditAssignmentForm(AssignmentForm):
-    def __init__(self):
-        super(AssignmentForm, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(AssignmentForm, self).__init__(*args, **kwargs)
         read_only(self.name)
         read_only(self.course)
 
