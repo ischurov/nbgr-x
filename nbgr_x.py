@@ -499,7 +499,7 @@ def autograde(submission_id):
                 print "DEBUG: %s => %s" % (key, value)
 
     try:
-        command = [
+        command = ['sudo',
             'docker', 'run', '--rm'] + mountpoints + [
             "jupyter/nbgrader",
             "autograde",
