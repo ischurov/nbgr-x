@@ -15,6 +15,7 @@
                     <th>Загруженные работы</th>
                 </tr>
                 {% for assignment in course['assignments'] %}
+                {% if assignment['data'].active %}
                     <tr>
                         <td>
                             {{ assignment['data'].description }} [<a href="{{ assignment['data'].ipynb_link() }}">ipynb</a>]
@@ -51,6 +52,7 @@
                         </td>
 
                     </tr>
+                {% endif %}
                 {% endfor %}
             </table>
             {% endif %}
