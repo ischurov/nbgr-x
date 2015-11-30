@@ -522,25 +522,30 @@ def autograde(submission_id):
 
         submission.autograded_status = 'autograded'
 
-        try:
-            command = [
-                'docker', 'run', '--rm'] + mountpoints + [
-                "jupyter/nbgrader",
-                "feedback",
-                secure_filename(assignment.name),
-                "--student",
-                str(user),
-                '--force'
-            ]
+        # TODO: we need better processing of this timeout scenario (hanged kernel)
 
-            print "DEBUG: " + " ".join(command)
+        if "Timeout waiting for IOPub output" in submission.autograded_log:
+            submission.autograded_status = 'timeout'
+        else:
+            try:
+                command = [
+                    'docker', 'run', '--rm'] + mountpoints + [
+                    "jupyter/nbgrader",
+                    "feedback",
+                    secure_filename(assignment.name),
+                    "--student",
+                    str(user),
+                    '--force'
+                ]
 
-            subprocess.check_output(
-                command, stderr=subprocess.STDOUT, env=env)
+                print "DEBUG: " + " ".join(command)
 
-        except subprocess.CalledProcessError as error:
-            submission.autograded_status = 'error_on_feedback'
-            submission.autograded_log = error
+                subprocess.check_output(
+                    command, stderr=subprocess.STDOUT, env=env)
+
+            except subprocess.CalledProcessError as error:
+                submission.autograded_status = 'error_on_feedback'
+                submission.autograded_log = error
 
     except subprocess.CalledProcessError as error:
         submission.autograded_log = error.output
