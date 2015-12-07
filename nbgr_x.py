@@ -524,7 +524,7 @@ def autograde(submission_id):
             submission.autograded_status = 'timeout'
         else:
             try:
-                command = [
+                command = ['sudo',
                     'docker', 'run', '--rm'] + mountpoints + [
                     "jupyter/nbgrader",
                     "feedback",
