@@ -738,11 +738,14 @@ def submit_assignment(id):
 
         if assignment.deadline and submission.timestamp <= assignment.deadline:
             submission.autograded_status = 'sent-to-grading'
+            db.session.commit()
+
             autograde.delay(submission.id)
         else:
             submission.autograded_status = 'late'
+            db.session.commit()
 
-        db.session.commit()
+
 
 
 
