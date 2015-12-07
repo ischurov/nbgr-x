@@ -1,0 +1,21 @@
+apt-get install apache2 python-pip python-dev libncurses5-dev rabbitmq-server nodejs nodejs-legacy npm libapache2-mod-wsgi
+pip install virtualenv
+cd /srv
+git clone https://github.com/ischurov/nbgr-x.git
+cd nbgr-x
+virtualenv env
+source env/bin/activate
+pip install -r requirements.txt
+rabbitmqctl change_password guest YOURRABBITPASSWORD
+apt-get install docker
+cd docker #TODO: update dockerfile
+docker build -t jupyter/nbgrader . 
+# you may need to add swap to allow docker compile all the necessary things
+cd ..
+npm install -g bower
+bower install eonasdan-bootstrap-datetimepicker#latest bootstrap --save --allow-root
+chown www-data:www-data /srv/nbgr-x
+#otherwise SQLAlchemy will not be able to write to sqlite db file
+
+sudo -u www-data /srv/nbgr-x/env/bin/celery -A nbgr_x.celery worker
+# add --detach when ready to run in production mode
