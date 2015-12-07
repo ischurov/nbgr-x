@@ -541,7 +541,7 @@ def autograde(submission_id):
 
             except subprocess.CalledProcessError as error:
                 submission.autograded_status = 'error_on_feedback'
-                submission.autograded_log = error
+                submission.autograded_log = error.output
 
     except subprocess.CalledProcessError as error:
         submission.autograded_log = error.output
