@@ -53,10 +53,6 @@ app.config.update(dict(
     PYTHON=os.path.join(MYPATH, "env", "bin", "python"),
     NBGRADER=os.path.join(MYPATH, "env", "bin", "nbgrader")))
 
-app.config.update(
-    CELERY_BROKER_URL='redis://localhost:6379',
-    CELERY_RESULT_BACKEND='redis://localhost:6379'
-)
 
 celery = make_celery(app)
 
