@@ -22,7 +22,7 @@ SECURITY_POST_REGISTER_VIEW = "/"
 
 # Flask-Security features
 SECURITY_REGISTERABLE = True
-SECURITY_CONFIRMABLE = True
+# SECURITY_CONFIRMABLE = True
 SECURITY_SEND_REGISTER_EMAIL = True
 
 NBGRX_PREFIX = "/srv/nbgr-x"
@@ -38,7 +38,8 @@ BACKUP_DIR = NBGRX_PREFIX+"/data/backup"
 MAC_OS = False
 # So we need additional things to do with docker
 
-IPYNB_LINK_TEMPLATE = "{url_prefix}/{course_name}/{ipynb_filename}"
+IPYNB_LINK_TEMPLATE = "{url_prefix}/{course_name}/{assignment}/{ipynb_filename}"
+#IPYNB_LINK_TEMPLATE = ""
 
 # Local only
 DEBUG = True
