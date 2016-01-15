@@ -12,8 +12,8 @@ from wtforms import DateTimeField
 import flask_admin
 from flask_security.forms import RegisterForm
 from flask_wtf import Form
-from wtforms import BooleanField, StringField, PasswordField, SelectMultipleField, validators
-from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField, QuerySelectField
+from wtforms import BooleanField, StringField, PasswordField, validators
+from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from flask_bootstrap import Bootstrap
 from flask.ext.bower import Bower
 from werkzeug import secure_filename
@@ -409,7 +409,7 @@ class ExtendedRegisterForm(RegisterForm):
     last_name = StringField('Last Name', [validators.DataRequired()])
     #    active_courses = Course.query.filter_by(active = True).all()
     #    courses_choices = [(c.id, c.description) for c in active_courses]
-    courses = QuerySelectMultipleField('Courses', [validators.DataRequired()],
+    courses = QuerySelectField('Courses', [validators.DataRequired()],
         query_factory=lambda: Course.query.filter_by(active=True),
         get_label='description')
 
