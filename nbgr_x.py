@@ -188,7 +188,7 @@ class User(db.Model, UserMixin):
     submissions = db.relationship('Submission', backref=db.backref('user'), lazy='dynamic')
 
     def __str__(self):
-        return "user"+str(self.id)
+        return "user %i <%s>" % (self.id, self.email)
 
 
 def try_and_save(file_obj, dir_name, filename):
