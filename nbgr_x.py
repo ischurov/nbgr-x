@@ -714,8 +714,8 @@ def list_assignments():
 class SubmitAssignmentForm(Form):
     ipynb_file = FileField("ipynb file",
                            validators=[FileRequired(),
-                                       FileAllowed(['ipynb'],
-                                                   'ipynb files only')])
+                                       FileAllowed(['ipynb', 'json'],
+                                                   'ipynb or json files only')])
 
 
 @app.route("/submit/assignment/<id>", methods=['GET', 'POST'])
