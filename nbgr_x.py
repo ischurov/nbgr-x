@@ -558,7 +558,8 @@ def autograde(submission_id):
 def do_pseudo_grade(id):
     submission = Submission.query.get_or_404(id)
     autograde.delay(submission.id)
-    return redirect(url_for('list_assignments'))
+    return redirect(url_for('get_feedback',
+                            id=submission.id))
 
 @login_required
 @roles_required(['superuser'])
