@@ -20,6 +20,7 @@ from werkzeug import secure_filename
 from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms_components import read_only
 from datetime import datetime
+from sqlalchemy import desc
 
 import subprocess
 import shutil
@@ -558,6 +559,35 @@ def do_pseudo_grade(id):
     submission = Submission.query.get_or_404(id)
     autograde.delay(submission.id)
     return redirect(url_for('list_assignments'))
+
+@login_required
+@roles_required(['superuser'])
+@app.route("/gradebook/<course_id>")
+def show_gradebook(course_id):
+    course = Course.query.get_or_404(course_id)
+    assignments = course.assignments
+    users = course.users
+
+    grades = {}
+    for user in users:
+
+        current_grades = {}
+        grades[user.id] = current_grades
+
+        for assignment in assignments:
+            submission = user.submissions.query.\
+                filter_by(assignment=assignment).\
+                order_by(desc(Submission.id)).first()
+            current_grades[assignment.id] = submission
+
+    return render_template("gradebook.html",
+                           assignments=assignments,
+                           users=users,
+                           grades=grades)
+
+
+
+
 
 
 
