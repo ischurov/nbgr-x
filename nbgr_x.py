@@ -590,6 +590,8 @@ def show_gradebook(course_id):
                            grades=grades)
 
 def get_grade(submission):
+    if submission is None:
+        return
     try:
         with open(submission.feedback_file()) as f:
             resp = f.read()
