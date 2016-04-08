@@ -575,7 +575,7 @@ def show_gradebook(course_id):
         grades[user.id] = current_grades
 
         for assignment in assignments:
-            submission = user.submissions.query.\
+            submission = user.submissions.\
                 filter_by(assignment=assignment).\
                 order_by(desc(Submission.id)).first()
             current_grades[assignment.id] = submission
