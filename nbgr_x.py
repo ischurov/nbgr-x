@@ -589,6 +589,37 @@ def show_gradebook(course_id):
                            users=users,
                            grades=grades)
 
+#THIS FUNCTION IS FOR DEBUG ONLY
+#SHOULD BE REMOVED SOON
+@login_required
+@roles_required(['superuser'])
+@app.route("/_gradebook/<course_id>")
+def show_last_subm(course_id):
+    course = Course.query.get_or_404(course_id)
+    assignments = course.assignments
+    users = course.users.\
+        order_by(User.last_name).\
+        order_by(User.first_name)
+
+    grades = {}
+    for user in users:
+
+        current_grades = {}
+        grades[user.id] = current_grades
+
+        for assignment in assignments:
+            submission = user.submissions.\
+                filter_by(assignment=assignment).\
+                order_by(desc(Submission.id)).first()
+
+
+            current_grades[assignment.id] = submission
+
+    return render_template("gradebook.html",
+                           assignments=assignments,
+                           users=users,
+                           grades=grades)
+
 def get_grade(submission):
     if submission is None:
         return
