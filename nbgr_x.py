@@ -566,7 +566,9 @@ def do_pseudo_grade(id):
 def show_gradebook(course_id):
     course = Course.query.get_or_404(course_id)
     assignments = course.assignments
-    users = course.users
+    users = course.users.\
+        order_by(User.first_name).\
+        order_by(User.last_name)
 
     grades = {}
     for user in users:
@@ -578,12 +580,28 @@ def show_gradebook(course_id):
             submission = user.submissions.\
                 filter_by(assignment=assignment).\
                 order_by(desc(Submission.id)).first()
-            current_grades[assignment.id] = submission
+
+
+            current_grades[assignment.id] = get_grade(submission)
 
     return render_template("gradebook.html",
                            assignments=assignments,
                            users=users,
                            grades=grades)
+
+def get_grade(submission):
+    try:
+        with open(submission.feedback_file()) as f:
+            resp = f.read()
+    except IOError:
+        return
+    for line in resp.splitlines():
+        if 'Score' in line:
+            m = re.search(r'Score: (\d+\.\d+)')
+            if not m:
+                return
+            return float(m.group(1))
+    return
 
 
 
