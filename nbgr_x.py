@@ -597,7 +597,7 @@ def get_grade(submission):
         return
     for line in resp.splitlines():
         if 'Score' in line:
-            m = re.search(r'Score: (\d+\.\d+)')
+            m = re.search(r'Score: (\d+\.\d+)', line)
             if not m:
                 return
             return float(m.group(1))
