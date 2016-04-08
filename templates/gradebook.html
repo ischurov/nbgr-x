@@ -9,6 +9,8 @@
                         Last name
                     </th>
                     <th>First name</th>
+                    <th>ID</th>
+                    <th>E-mail</th>
                     {% for assignment in assignments %}
                     <th> {{ assignment.name }}</th>
                     {% endfor %}
@@ -17,6 +19,8 @@
             <tr>
                 <td>{{ user.last_name }}</td>
                 <td>{{ user.first_name }}</td>
+                <td>{{ user.id }}</td>
+                <td>{{ user.email }}</td>
                 {% for assignment in assignments %}
                 <td>
                     {{ grades[user.id][assignment.id] }}
