@@ -567,8 +567,8 @@ def show_gradebook(course_id):
     course = Course.query.get_or_404(course_id)
     assignments = course.assignments
     users = course.users.\
-        order_by(User.first_name).\
-        order_by(User.last_name)
+        order_by(User.last_name).\
+        order_by(User.first_name)
 
     grades = {}
     for user in users:
