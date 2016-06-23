@@ -875,7 +875,7 @@ def show_my_grades():
     from oauth2client.service_account import ServiceAccountCredentials
 
     scope = ['https://spreadsheets.google.com/feeds']
-    credentials = ServiceAccountCredentials.from_json_keyfile_name('lms-py-f5f1a9055751.json', scope)
+    credentials = ServiceAccountCredentials.from_json_keyfile_name('/srv/nbgr-x/lms-py-f5f1a9055751.json', scope)
 
     gc = gspread.authorize(credentials)
     spreadsheet = gc.open_by_url("https://docs.google.com/spreadsheets/d/1hmrGPmnzzcLeu8PfLPF0ThUZFS0tmxGRbKRB_m9eOD0/edit0")
