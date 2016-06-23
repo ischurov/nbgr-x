@@ -873,7 +873,7 @@ def get_feedback(id):
 def show_my_grades():
     import json
 
-    with open("grades.json") as f:
+    with open("/srv/nbgr-x/grades.json") as f:
         sheet = json.load(f)
 
     header = sheet.pop(0)
