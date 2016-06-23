@@ -871,15 +871,11 @@ def get_feedback(id):
 @app.route("/_show_my_grades")
 @login_required
 def show_my_grades():
-    import gspread
-    from oauth2client.service_account import ServiceAccountCredentials
+    import json
 
-    scope = ['https://spreadsheets.google.com/feeds']
-    credentials = ServiceAccountCredentials.from_json_keyfile_name('/srv/nbgr-x/lms-py-f5f1a9055751.json', scope)
+    with open("grades.json") as f:
+        sheet = json.load(f)
 
-    gc = gspread.authorize(credentials)
-    spreadsheet = gc.open_by_url("https://docs.google.com/spreadsheets/d/1hmrGPmnzzcLeu8PfLPF0ThUZFS0tmxGRbKRB_m9eOD0/edit0")
-    sheet = spreadsheet.worksheet("Total").get_all_values()
     header = sheet.pop(0)
     grades = None
     for row in sheet:
