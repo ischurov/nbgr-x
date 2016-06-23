@@ -637,12 +637,6 @@ def get_grade(submission):
             return float(m.group(1))
     return
 
-
-
-
-
-
-
 # Create a user to test with
 # @app.before_first_request
 def build_sample_db():
@@ -813,6 +807,8 @@ def submit_assignment(id):
         submission.assignment = assignment
         submission.user = current_user
         submission.timestamp = datetime.today()
+        db.session.add(submission)
+        db.session.commit()
 
         try_and_save(form.ipynb_file.data,
                      submission.dirpath(),
@@ -821,7 +817,6 @@ def submit_assignment(id):
         if assignment.deadline and submission.timestamp <= assignment.deadline:
             submission.autograded_status = 'sent-to-grading'
             db.session.commit()
-
             autograde.delay(submission.id)
         else:
             submission.autograded_status = 'late'
@@ -870,6 +865,34 @@ def get_feedback(id):
     return Response(resp,
                     mimetype="text/html")
 
+### FIXME
+### THIS IS UGLY ONE-TIMER HARD-CODED FUNCTION
+### WILL BE REMOVED
+@app.route("/_show_my_grades")
+@login_required
+def show_my_grades():
+    import gspread
+    from oauth2client.service_account import ServiceAccountCredentials
+
+    scope = ['https://spreadsheets.google.com/feeds']
+    credentials = ServiceAccountCredentials.from_json_keyfile_name('lms-py-f5f1a9055751.json', scope)
+
+    gc = gspread.authorize(credentials)
+    spreadsheet = gc.open_by_url("https://docs.google.com/spreadsheets/d/1hmrGPmnzzcLeu8PfLPF0ThUZFS0tmxGRbKRB_m9eOD0/edit0")
+    sheet = spreadsheet.worksheet("Total").get_all_values()
+    header = sheet.pop(0)
+    grades = None
+    for row in sheet:
+        if row[0].lower().strip() == current_user.email.lower().strip():
+            grades = row[1:]
+            break
+    if grades:
+        table = zip(header[1:], grades)
+    else:
+        table = None
+    return render_template("show_my_grades.html", table=table,
+                           email=current_user.email)
+
 
 # Create admin
 admin = flask_admin.Admin(
@@ -886,7 +909,6 @@ admin.add_view(MyModelView(Course, db.session))
 admin.add_view(MyModelView(Assignment, db.session))
 admin.add_view(MyModelView(Submission, db.session))
 
-
 # define a context processor for merging flask-admin's template context into the
 # flask-security views.
 @security.context_processor
@@ -896,6 +918,7 @@ def security_context_processor():
         admin_view=admin.index_view,
         h=admin_helpers,
     )
+
 
 
 #if __name__ == '__main__':
