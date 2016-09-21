@@ -509,7 +509,9 @@ def autograde(submission_id):
             "--student",
             str(user),
             "--create",
-            '--force'
+            '--force',
+            '--Execute.kernel_name',
+            'python3'
         ]
 
         print "DEBUG: " + " ".join(command)
