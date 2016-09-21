@@ -532,7 +532,9 @@ def autograde(submission_id):
                     secure_filename(assignment.name),
                     "--student",
                     str(user),
-                    '--force'
+                    '--force',
+                    '--Execute.kernel_name',
+                    'python3'
                 ]
 
                 print "DEBUG: " + " ".join(command)
