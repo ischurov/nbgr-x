@@ -26,7 +26,7 @@ import subprocess
 import shutil
 import re
 
-import time
+import json
 
 # from itertools import chain
 # Create app
@@ -466,13 +466,26 @@ def autograde(submission_id):
     for step in steps:
         make_sure_path_exists(submission.process_dir(step))
 
-    shutil.copyfile(
-        submission.fullfilename(),
-        os.path.join(
+    ipynb_filename = os.path.join(
             submission.process_dir('submitted'),
             assignment.ipynb_filename()
-        )
     )
+
+    shutil.copyfile(submission.fullfilename(), ipynb_filename)
+
+    # FIX kernel name
+    # Workaround for https://github.com/Anaconda-Platform/nb_conda_kernels/issues/34
+
+    with open(ipynb_filename) as fp:
+        ipynb = json.load(fp)
+
+    if ipynb['metadata']['kernelspec']['name'] != 'python3':
+        ipynb['metadata']['kernelspec']['name'] = 'python3'
+        with open(ipynb_filename, 'w') as fp:
+            json.dump(ipynb, fp)
+
+    # END FIX
+
 
     ts_format = "%Y-%m-%d %H:%M:%S %Z"
 
@@ -509,9 +522,7 @@ def autograde(submission_id):
             "--student",
             str(user),
             "--create",
-            '--force',
-            '--Execute.kernel_name',
-            'python3'
+            '--force'
         ]
 
         print "DEBUG: " + " ".join(command)
@@ -534,9 +545,7 @@ def autograde(submission_id):
                     secure_filename(assignment.name),
                     "--student",
                     str(user),
-                    '--force',
-                    '--Execute.kernel_name',
-                    'python3'
+                    '--force'
                 ]
 
                 print "DEBUG: " + " ".join(command)
