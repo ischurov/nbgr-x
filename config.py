@@ -30,7 +30,11 @@ NBGRX_PREFIX = "/srv/nbgr-x"
 ASSIGNMENTS_PROCESS_DIR = NBGRX_PREFIX+'/data/assignments_process'
 # contains <course_name>/gradebook.db
 
-ASSIGNMENTS_URL_PREFIX = "http://nbviewer.ipython.org/url/python.math-hse.info/static/assignments_release"
+ASSIGNMENTS_URL_PREVIEW_PREFIX = ("http://nbviewer.ipython.org/url/"
+                                  "python.math-hse.info/static/"
+                                  "assignments_release")
+ASSIGNMENTS_URL_PREFIX = ("http://python.math-hse.info/static/"
+                          "assignments_release")
 ASSIGNMENTS_RELEASE_DIR = NBGRX_PREFIX+'/static/assignments_release'
 SUBMISSIONS_DIR = NBGRX_PREFIX+"/data/submissions"
 BACKUP_DIR = NBGRX_PREFIX+"/data/backup"
@@ -38,7 +42,8 @@ BACKUP_DIR = NBGRX_PREFIX+"/data/backup"
 MAC_OS = False
 # So we need additional things to do with docker
 
-IPYNB_LINK_TEMPLATE = "{url_prefix}/{course_name}/{assignment}/{ipynb_filename}"
+IPYNB_LINK_TEMPLATE = \
+    "{url_prefix}/{course_name}/{assignment}/{ipynb_filename}"
 #IPYNB_LINK_TEMPLATE = ""
 
 # Local only

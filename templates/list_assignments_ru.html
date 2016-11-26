@@ -19,6 +19,7 @@
                     <tr>
                         <td>
                             {{ assignment['data'].description }} [<a href="{{ assignment['data'].ipynb_link() }}">ipynb</a>]
+                            [<a href="{{ assignment['data'].ipynb_link(preview=True) }}">preview</a>]
                         </td>
                         <td>
                             {{ assignment['data'].deadline.strftime("%Y-%m-%d %H:%M:%S") }}

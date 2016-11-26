@@ -230,9 +230,14 @@ class Assignment(db.Model):
     def __str__(self):
         return self.name
 
-    def ipynb_link(self):
+    def ipynb_link(self, preview=False):
+        if preview:
+            prefix = app.config['ASSIGNMENTS_URL_PREFIX']
+        else:
+            prefix = app.config['ASSIGNMENTS_URL_PREVIEW_PREFIX']
         return app.config['IPYNB_LINK_TEMPLATE'].format(
-            url_prefix=app.config['ASSIGNMENTS_URL_PREFIX'], ipynb_filename=self.ipynb_filename(),
+            url_prefix=prefix,
+            ipynb_filename=self.ipynb_filename(),
             assignment=secure_filename(self.name),
             course_name=secure_filename(self.course.name),
         )
