@@ -232,9 +232,9 @@ class Assignment(db.Model):
 
     def ipynb_link(self, preview=False):
         if preview:
-            prefix = app.config['ASSIGNMENTS_URL_PREFIX']
-        else:
             prefix = app.config['ASSIGNMENTS_URL_PREVIEW_PREFIX']
+        else:
+            prefix = app.config['ASSIGNMENTS_URL_PREFIX']
         return app.config['IPYNB_LINK_TEMPLATE'].format(
             url_prefix=prefix,
             ipynb_filename=self.ipynb_filename(),
