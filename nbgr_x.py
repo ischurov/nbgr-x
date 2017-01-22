@@ -714,6 +714,8 @@ class AddAssignmentForm(AssignmentForm):
 
 
 class EditAssignmentForm(AssignmentForm):
+    force_create = BooleanField("Force --create", default=False)
+
     def __init__(self, *args, **kwargs):
         super(AssignmentForm, self).__init__(*args, **kwargs)
         read_only(self.name)
@@ -773,7 +775,8 @@ def edit_assignment(id):
 
         if form.ipynb_file.data:
             assignment.save_ipynb(form.ipynb_file.data)
-            assignment.process_ipynb(update=True, logfile='log.log')
+            assignment.process_ipynb(update=not form.force_create,
+                                     logfile='log.log')
 
         form.populate_obj(assignment)
         db.session.commit()

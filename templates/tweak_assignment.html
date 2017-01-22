@@ -20,6 +20,7 @@
             {% if mode == 'add' %}
             <form action="{{ url_for('add_assignment') }}" method="POST" name="form" enctype="multipart/form-data">
             {% elif mode == 'edit' %}
+                {{ render_field_with_errors(form.force_create) }}
             <form action="{{ url_for('edit_assignment', id = assignment.id) }}" method="POST" name="form" enctype="multipart/form-data">
             {% endif %}
                 {{ form.csrf_token }}
