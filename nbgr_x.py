@@ -497,14 +497,15 @@ def autograde(submission_id):
     with open(os.path.join(submission.process_dir('submitted'),"timestamp.txt"), "w") as f:
         f.write(submission.timestamp.strftime(ts_format))
 
-    # docker run --rm -v /Users/user/prj/hse/all-python/nbgrader:/assignments/
-    #   jupyter/nbgrader autograde ps4 --create
+    shutil.copyfile(os.path.join(course.assignments_process_dir(),
+        "gradebook.db"), submission.process_root())
 
-    mountpoints = ['-v', course.assignments_process_dir()+":/assignments/"]
+    mountpoints = ['-v', submission.process_root()+":/assignments/"]
     for step in steps:
         make_sure_path_exists(submission.process_dir(step))
-        mountpoints.extend(['-v', "{}:/assignments/{}".
-                           format(submission.process_root(step),step)])
+#        mountpoints.extend(['-v', "{}:/assignments/{}".
+#                           format(submission.process_root(step),step)])
+# FIXME: remove commented
 
     env = os.environ
     if app.config['MAC_OS']:
