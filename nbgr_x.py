@@ -781,7 +781,7 @@ def edit_assignment(id):
 
         if form.ipynb_file.data:
             assignment.save_ipynb(form.ipynb_file.data)
-            assignment.process_ipynb(update=not form.force_create,
+            assignment.process_ipynb(update=not form.force_create.data,
                                      logfile='log.log')
 
         form.populate_obj(assignment)
