@@ -296,19 +296,23 @@ class Assignment(db.Model):
             mode = '--force'
         else:
             mode = '--create'
-        if logfile:
-            log = open(logfile, "a")
-            log.write(datetime.today().isoformat()+"\n")
-        else:
-            log = None
 
-        subprocess.call([app.config['PYTHON'],
+        command = [app.config['PYTHON'],
                          app.config['NBGRADER'],
                          "assign",
                          secure_filename(self.name),
                          mode,
                         '--ClearSolutions.code_stub="%s"' %
-                         codestub],
+                         codestub]
+
+        if logfile:
+            log = open(logfile, "a")
+            log.write(datetime.today().isoformat()+"\n")
+            log.write(" ".join(command) + "\n\n")
+        else:
+            log = None
+
+        subprocess.call(command,
                         stderr=log)
         if logfile:
             log.close()
