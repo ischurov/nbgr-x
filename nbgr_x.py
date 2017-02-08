@@ -21,6 +21,7 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms_components import read_only
 from datetime import datetime
 from sqlalchemy import desc
+import json
 
 import subprocess
 import shutil
@@ -215,6 +216,13 @@ def try_and_save(file_obj, dir_name, filename):
             raise
     return full_name
 
+def get_message(user):
+    try:
+        with open("/usr/nbgr-x/messages.json") as f:
+            messages = json.load(f)
+    except IOError:
+        messages = {}
+    return messages.get(user.email)
 
 class Assignment(db.Model):
 
@@ -720,7 +728,7 @@ class AddAssignmentForm(AssignmentForm):
 
 
 class EditAssignmentForm(AssignmentForm):
-    force_create = BooleanField("Force --create", default=False)
+    force_create = BooleanField("Recreate assignment", default=False)
 
     def __init__(self, *args, **kwargs):
         super(AssignmentForm, self).__init__(*args, **kwargs)
@@ -811,7 +819,8 @@ def list_assignments():
         mycourses.append(mycourse)
 
     return render_template("list_assignments_ru.html",
-                           mycourses=mycourses)
+                           mycourses=mycourses,
+                           message=get_message(current_user))
 
 
 class SubmitAssignmentForm(Form):
@@ -915,7 +924,6 @@ def show_my_grades():
         table = None
     return render_template("show_my_grades.html", table=table,
                            email=current_user.email)
-
 
 # Create admin
 admin = flask_admin.Admin(
