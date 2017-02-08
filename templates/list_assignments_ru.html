@@ -61,11 +61,11 @@
             </table>
             {% endif %}
         {% endfor %}
+        {% if message %}
+        <h3>Сообщение</h3>
+        <p>{{ message | safe }}</p>
+        {% endif %}
         </div>
-{% if message %}
-<h3>Сообщение</h3>
-<p>{{ message | safe }}</p>
-{% endif %}
 </div>
 
 <p>
