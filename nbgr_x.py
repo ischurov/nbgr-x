@@ -218,7 +218,8 @@ def try_and_save(file_obj, dir_name, filename):
 
 def get_message(user):
     try:
-        with open("/usr/nbgr-x/messages.json") as f:
+        with open(os.path.join(app.config['MYPATH'],
+                               "messages.json")) as f:
             messages = json.load(f)
     except IOError:
         messages = {}
