@@ -62,11 +62,12 @@
             {% endif %}
         {% endfor %}
         </div>
-</div>
 {% if message %}
 <h3>Сообщение</h3>
 <p>{{ message | safe }}</p>
 {% endif %}
+</div>
+
 <p>
 <a href="{{ url_for('security.logout') }}">Выйти из системы</a>
     </p>
