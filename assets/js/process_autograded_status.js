@@ -5,6 +5,7 @@
 $(function() {
     $(".process_autograded_status")
         .each(function process_element(i, element) {
+            element = $(element);
             var submission_id = element.data("submission-id");
 
             $.getJSON($SCRIPT_ROOT +
