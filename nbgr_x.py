@@ -903,11 +903,12 @@ def get_feedback(id):
     return Response(resp,
                     mimetype="text/html")
 
-@app.route("/json/autograded_status/<int:idx>")
+@app.route("/json/autograded_status/<idx>")
 @login_required
 def json_autograded_status(idx):
     submission = Submission.query.get_or_404(id)
-    if current_user != submission.user and not current_user.has_role('superuser'):
+    if (current_user != submission.user and
+            not current_user.has_role('superuser')):
         abort(403)
     return jsonify(status=submission.autograded_status,
                    log=submission.autograded_log)
