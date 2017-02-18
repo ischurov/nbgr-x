@@ -1,4 +1,11 @@
 {% extends "bootstrap/base.html" %}
+{% block scripts %}
+{{ super() }}
+<script type=text/javascript>
+  $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="row-fluid">
     <div class="col-sm-8 col-sm-offset-2">
@@ -63,4 +70,5 @@
 <p>
 <a href="{{ url_for('security.logout') }}">Выйти из системы</a>
     </p>
+<script src="{{ url_for('send_js', 'process_autograded_status.js') }}"></script>
 {% endblock %}

@@ -1,4 +1,11 @@
 {% extends "bootstrap/base.html" %}
+{% block scripts %}
+{{ super() }}
+<script type=text/javascript>
+  $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="row-fluid">
     <div class="col-sm-8 col-sm-offset-2">
@@ -33,20 +40,7 @@
                                 <a href="{{ url_for("get_submission_content", id=submission.id) }}">
                                 #{{ submission.id }}
                                 </a> ({{ submission.timestamp }})
-                                {% if submission.autograded_status == 'autograded' %}
-                                <br/><a href="{{ url_for("get_feedback", id=submission.id) }}">Результаты проверки</a>.
-                                {% elif  submission.autograded_status == 'processing' %}
-                                <br/>Идёт автоматическая проверка (обновите страницу через некоторое время).
-                                {% elif submission.autograded_status == 'failed' %}
-                                <br/>ОШИБКА: {{ submission.autograded_log }}
-                                {% elif submission.autograded_status == 'late' %}
-                                <br/>Проверка не производится: работа сдана после дедлайна. Пожалуйста, обратитесь к преподавателю, если считаете, что работа всё равно должна быть проверена.
-                                {% elif submission.autograded_status == 'sent-to-grading' %}
-                                <br/>Работа ожидает автоматической проверки, но все роботы-проверяльщики заняты. Обновите страницу через некоторое время.
-                                {% elif submission.autograded_status == 'timeout' %}
-                                <br/>ОШИБКА: выполнение занимает слишком много времени, скорее всего где-то есть бесконечный цикл.
-                                {% endif %}
-
+                                <br/><span class="process_autograded_status" data-submission-id="{{ submission.id }}"></span>
                             </li>
                             {% endfor %}
                         </ul>

@@ -1,6 +1,6 @@
 import os
-from flask import Flask, render_template, url_for, request, abort,\
-    redirect, Response
+from flask import (Flask, render_template, url_for, request, abort,
+    redirect, Response, send_from_directory, jsonify)
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.security import Security, SQLAlchemyUserDatastore, \
     UserMixin, RoleMixin, login_required, current_user, roles_required
@@ -47,7 +47,7 @@ def make_celery(app):
     return celery
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='assets')
 MYPATH = os.path.dirname(os.path.realpath(__file__))
 app.config.from_pyfile('config.py')
 app.config.update(dict(
@@ -517,9 +517,6 @@ def autograde(submission_id):
     mountpoints = ['-v', submission.process_root()+":/assignments/"]
     for step in steps:
         make_sure_path_exists(submission.process_dir(step))
-#        mountpoints.extend(['-v', "{}:/assignments/{}".
-#                           format(submission.process_root(step),step)])
-# FIXME: remove commented
 
     env = os.environ
     if app.config['MAC_OS']:
@@ -584,6 +581,10 @@ def autograde(submission_id):
 
 
     db.session.commit()
+
+@app.route("/assets/js/<path:path>")
+def send_js(path):
+    return send_from_directory('js', path)
 
 @login_required
 @roles_required(['superuser'])
@@ -901,6 +902,15 @@ def get_feedback(id):
         resp = f.read()
     return Response(resp,
                     mimetype="text/html")
+
+@app.route("/json/autograded_status/<int:idx>")
+@login_required
+def json_autograded_status(idx):
+    submission = Submission.query.get_or_404(id)
+    if current_user != submission.user and not current_user.has_role('superuser'):
+        abort(403)
+    return jsonify(status=submission.autograded_status,
+                   log=submission.autograded_log)
 
 ### FIXME
 ### THIS IS UGLY ONE-TIMER HARD-CODED FUNCTION
