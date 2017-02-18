@@ -2,7 +2,7 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="{{ url_for('send_js', path='process_autograded_status.js') }}"></script>
+<script src="{{ url_for('send_asset', path='js/process_autograded_status.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -43,7 +43,10 @@
                                 <a href="{{ url_for("get_submission_content", id=submission.id) }}">
                                 #{{ submission.id }}
                                 </a> ({{ submission.timestamp }})
-                                <br/><span class="process_autograded_status" data-submission-id="{{ submission.id }}"></span>
+                                <br/><span class="process_autograded_status"
+                                           data-submission-id="{{ submission.id }}"
+                                           data-sumission-status="{{ submission.autograded_status }}">
+                                     </span>
                             </li>
                             {% endfor %}
                         </ul>

@@ -582,9 +582,9 @@ def autograde(submission_id):
 
     db.session.commit()
 
-@app.route("/assets/js/<path:path>")
-def send_js(path):
-    return send_from_directory(os.path.join(MYPATH, 'assets', 'js'), path)
+@app.route("/assets/<path:path>")
+def send_asset(path):
+    return send_from_directory(os.path.join(MYPATH, 'assets'), path)
 
 @login_required
 @roles_required(['superuser'])
