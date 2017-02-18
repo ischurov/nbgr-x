@@ -1,12 +1,14 @@
 {% extends "bootstrap/base.html" %}
 {% block scripts %}
 {{ super() }}
-<script type=text/javascript>
-  $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-</script>
+<script src="{{ url_for('send_js', path='process_autograded_status.js') }}"></script>
 {% endblock %}
 
 {% block content %}
+<script type=text/javascript>
+  $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+</script>
+
 <div class="row-fluid">
     <div class="col-sm-8 col-sm-offset-2">
         <h1>Assignments</h1>
