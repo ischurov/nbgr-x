@@ -47,7 +47,7 @@ def make_celery(app):
     return celery
 
 
-app = Flask(__name__, static_url_path='assets')
+app = Flask(__name__)
 MYPATH = os.path.dirname(os.path.realpath(__file__))
 app.config.from_pyfile('config.py')
 app.config.update(dict(
@@ -584,7 +584,7 @@ def autograde(submission_id):
 
 @app.route("/assets/js/<path:path>")
 def send_js(path):
-    return send_from_directory('js', path)
+    return send_from_directory(os.path.join(MYPATH, 'assets', 'js'), path)
 
 @login_required
 @roles_required(['superuser'])
