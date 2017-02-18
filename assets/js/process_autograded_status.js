@@ -50,7 +50,7 @@ $(function() {
                 }
             }
 
-            var status = element.data("autograded_status");
+            var status = element.data("autograded-status");
             if (status == 'autograded' || status == 'late' ||
                     status == 'timeout') {
                 process_submission({status: status})
