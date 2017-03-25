@@ -614,6 +614,7 @@ def show_gradebook(course_id):
         for assignment in assignments:
             submission = user.submissions.\
                 filter_by(assignment=assignment).\
+                filter_by(autograded_status='autograded').\
                 order_by(desc(Submission.id)).first()
 
 
