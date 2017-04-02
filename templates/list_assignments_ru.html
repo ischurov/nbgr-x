@@ -57,7 +57,33 @@
                 {% endif %}
                 {% endfor %}
             </table>
-            {% endif %}
+        {% if course['peer_review_assignments'] %}
+        <table class="table table-striped table-bordered table-hove">
+                <tr>
+                    <th>
+                        Задание для peer review
+                    </th>
+                    <th>Срок сдачи</th>
+                    <th>Сдать работу</th>
+                </tr>
+
+                {% for assignment in course['peer_review_assignments'] %}
+                <tr>
+                    <td>
+                        {{ assignment.description }}
+                    </td>
+                    <td>
+                        {{ assignment.deadline }}
+                    </td>
+                    <td>
+                        <a href="{{ url_for("peer_review_submit_assignment", id=assignment.id) }}">Сдать работу</a>
+                    </td>
+                </tr>
+            {% endfor %} {# peer review assignments #}
+        </table>
+        {% endif %} {# peer review assignments exists #}
+
+            {% endif %} {# course active #}
         {% endfor %}
         {% if message %}
         <h3>Сообщение</h3>

@@ -1,0 +1,35 @@
+{% extends "bootstrap/base.html" %}
+
+{% from "security/_macros.html" import render_field_with_errors, render_field %}
+{% include "security/_messages.html" %}
+{% block content %}
+<div class="row-fluid">
+    <div class="col-sm-8 col-sm-offset-2">
+        <h1>Submit Review</h1>
+        <h2>{{ assignment.description }}</h2>
+        <h3>Work</h3>
+        <p>{{ submission.work}}</p>
+        {% if submission.comment_for_reviewer %}
+        <h3>Comment for reviewer</h3>
+        <p>{{ submission.comment_for_reviewer}}</p>
+        {% endif %}
+        <h3>Your grades</h3>
+        <div class="well">
+            <form action="{{ url_for('peer_review_submit_review',
+            id=request.id) }}" method="POST" name="form" enctype="multipart/form-data">
+                {{ form.csrf_token }}
+
+                {% for criterion, subform in criteria_formitems %}
+                    <p> {{ criterion.description }}</p>
+                    {{ render_field_with_errors(subform.grade) }}
+                    {{ render_field_with_errors(subform.comment) }}
+                    <hr>
+                {% endfor %}
+
+                <input type="submit" value="Go">
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
