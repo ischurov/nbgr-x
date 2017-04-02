@@ -11,7 +11,7 @@
             <form action="{{ url_for('peer_review_submit_assignment', id=assignment.id) }}" method="POST" name="form" enctype="multipart/form-data">
                 {{ form.csrf_token }}
                 {{ render_field_with_errors(form.work) }}
-                {{ render_field_with_errors(form.comment_to_reviewer) }}
+                {{ render_field_with_errors(form.comment_for_reviewer) }}
 
                 <input type="submit" value="Go">
             </form>

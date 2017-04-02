@@ -24,21 +24,21 @@
                     <th>Срок сдачи</th>
                     <th>Загруженные работы</th>
                 </tr>
-                {% for assignment in course['assignments'] %}
-                {% if assignment['data'].active %}
+                {% for assignment, submissions in course['assignments'] %}
+                {% if assignment.active %}
                     <tr>
                         <td>
-                            {{ assignment['data'].description }} [<a href="{{ assignment['data'].ipynb_link() }}">ipynb</a>]
-                            [<a href="{{ assignment['data'].ipynb_link(preview=True) }}">preview</a>]
+                            {{ assignment.description }} [<a href="{{ assignment.ipynb_link() }}">ipynb</a>]
+                            [<a href="{{ assignment.ipynb_link(preview=True) }}">preview</a>]
                         </td>
                         <td>
-                            {{ assignment['data'].deadline.strftime("%Y-%m-%d %H:%M:%S") }}
+                            {{ assignment.deadline.strftime("%Y-%m-%d %H:%M:%S") }}
                         </td>
                         <td>
-                        {% if assignment['submissions'] %}
+                        {% if submissions %}
 
                         <ul>
-                            {% for submission in assignment['submissions'] %}
+                            {% for submission in submissions %}
                             <li>
                                 <a href="{{ url_for("get_submission_content", id=submission.id) }}">
                                 #{{ submission.id }}
@@ -51,7 +51,7 @@
                             {% endfor %}
                         </ul>
                         {% endif %}
-                            <a href="{{ url_for("submit_assignment", id=assignment['data'].id) }}">загрузить работу</a>
+                            <a href="{{ url_for("submit_assignment", id=assignment.id) }}">загрузить работу</a>
                         </td>
                     </tr>
                 {% endif %}
@@ -67,7 +67,7 @@
                     <th>Сдать работу</th>
                 </tr>
 
-                {% for assignment in course['peer_review_assignments'] %}
+                {% for assignment, submission in course['peer_review_assignments'] %}
                 <tr>
                     <td>
                         {{ assignment.description }}
@@ -76,7 +76,18 @@
                         {{ assignment.deadline }}
                     </td>
                     <td>
-                        <a href="{{ url_for("peer_review_submit_assignment", id=assignment.id) }}">Сдать работу</a>
+                        {% if submission %}
+                        Работа сдана {{ submission.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}.
+                        {% endif %}
+                        {% if now < assignment.deadline %}
+                        <a href="{{ url_for("peer_review_submit_assignment", id=assignment.id) }}">
+                        {% if submission -%}
+                        Изменить сданную работу
+                        {%- else -%}
+                        Сдать работу
+                        {%- endif -%}
+                        </a>.
+                        {%- endif -%}
                     </td>
                 </tr>
             {% endfor %} {# peer review assignments #}

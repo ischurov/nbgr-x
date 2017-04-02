@@ -939,22 +939,23 @@ def list_assignments():
     for course in courses:
         mycourse={'description': course.description,
                   'active': course.active, 'assignments': [],
-                  'peer_review_assignments':
-                      course.peer_review_assignments.all()}
+                  'peer_review_assignments': []}
         for assignment in course.assignments:
-            mycourse['assignments'].append({
-                'data':assignment,
-                'submissions':
-                    [s for s in submissions if s.assignment == assignment]
-            })
+            mycourse['assignments'].append(
+                (assignment,
+                 [s for s in submissions if s.assignment == assignment]))
+        for assignment in course.peer_review_assignments:
+            mycourse['peer_review_assignments'].append(
+                (assignment,
+                 assignment.submissions.filter_by(
+                    user=current_user).first()))
 
         mycourses.append(mycourse)
 
-
-
     return render_template("list_assignments_ru.html",
                            mycourses=mycourses,
-                           message=get_message(current_user))
+                           message=get_message(current_user),
+                           now=datetime.now())
 
 
 class SubmitAssignmentForm(Form):
@@ -984,7 +985,8 @@ def submit_assignment(id):
                      submission.dirpath(),
                      submission.filename())
 
-        if assignment.deadline and submission.timestamp <= assignment.deadline:
+        if (assignment.deadline and
+                    submission.timestamp <= assignment.deadline):
             submission.autograded_status = 'sent-to-grading'
             db.session.commit()
             autograde.delay(submission.id)
@@ -1052,11 +1054,22 @@ class SubmitPeerReviewAssignmentForm(Form):
 def peer_review_submit_assignment(id):
     assignment = PeerReviewAssignment.query.get_or_404(id)
     form = SubmitPeerReviewAssignmentForm()
+    submission = assignment.submissions.filter_by(
+        user=current_user).first()
+    if submission:
+        form.work.data = submission.work
+        form.comment_for_reviewer.data = submission.comment_for_reviewer
+
     if form.validate_on_submit():
-        submission = PeerReviewSubmission()
-        submission.user=current_user
-        submission.assignment_id=assignment.id
+        if (assignment.deadline and
+                    datetime.today() > assignment.deadline):
+            return render_template("toolate.html")
+        if not submission:
+            submission = PeerReviewSubmission()
+            submission.user=current_user
+            submission.assignment_id=assignment.id
         submission.timestamp=datetime.today()
+
         submission.work=form.work.data
         submission.comment_for_reviewer=form.comment_for_reviewer.data
 
