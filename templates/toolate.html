@@ -1,0 +1,13 @@
+{% extends "bootstrap/base.html" %}
+
+{% from "security/_macros.html" import render_field_with_errors, render_field %}
+{% include "security/_messages.html" %}
+{% block content %}
+<div class="row-fluid">
+    <div class="col-sm-8 col-sm-offset-2">
+<h1>Too late</h1>
+        <h2>Sorry, it's too late. The deadline passed.</h2>
+    </div>
+</div>
+
+{% endblock %}
