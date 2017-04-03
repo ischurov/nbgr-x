@@ -1137,7 +1137,8 @@ def peer_review_submit_review(id):
         abort(403)
     if review_request.review:
         # review already submitted, cannot change
-        return redirect(url_for('peer_review_get_review', id=id,
+        return redirect(url_for('peer_review_get_review',
+                                id=review_request.review.id,
                                 message='alreadysubmitted'))
 
     submission = review_request.submission
@@ -1211,9 +1212,11 @@ def peer_review_create_request(assignment, reviewer):
                         if s.user != reviewer and
                         reviewer not in
                         [r.reviewer for r in s.review_requests]]
+
     def number_of_reviewers(submission):
         return len(submission.review_requests.all())
 
+    # FIXME: rewrite it using SQL
     submissions_to_choose = list(next(itertools.groupby(
         sorted(free_submissions, key=number_of_reviewers),
         key=number_of_reviewers), (None, []))[1])
