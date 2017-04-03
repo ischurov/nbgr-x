@@ -15,7 +15,9 @@ from flask_security.forms import RegisterForm
 from flask_wtf import Form
 from wtforms import (BooleanField, StringField, TextAreaField, validators,
                      SelectField, TextAreaField, FieldList, FormField)
-from wtforms.ext.sqlalchemy.fields import QuerySelectMultipleField, QuerySelectField
+import wtforms
+from wtforms.ext.sqlalchemy.fields import (QuerySelectMultipleField,
+                                           QuerySelectField)
 from flask_bootstrap import Bootstrap
 from flask.ext.bower import Bower
 from werkzeug import secure_filename
@@ -23,11 +25,13 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms_components import read_only
 from datetime import datetime
 from sqlalchemy import desc
-import json
 
 import subprocess
 import shutil
 import re
+
+import itertools
+import random
 
 from operator import attrgetter
 
@@ -39,7 +43,8 @@ import json
 from celery import Celery
 
 def make_celery(app):
-    celery = Celery(app.import_name, broker=app.config['CELERY_BROKER_URL'])
+    celery = Celery(app.import_name,
+                    broker=app.config['CELERY_BROKER_URL'])
     celery.conf.update(app.config)
     TaskBase = celery.Task
     class ContextTask(TaskBase):
@@ -59,26 +64,10 @@ app.config.update(dict(
     PYTHON=os.path.join(MYPATH, "env", "bin", "python"),
     NBGRADER=os.path.join(MYPATH, "env", "bin", "nbgrader")))
 
-
 celery = make_celery(app)
 
 Bootstrap(app)
 Bower(app)
-# app.config['SECRET_KEY'] = 'secret'
-# app.config['SQLALCHEMY_DATABASE_URI'] = \
-#        'sqlite:////srv/data/nbgr-x/2015-16/students.sqlite'
-
-# 'SECURITY_CONFIRMABLE',
-# for field in ['SECURITY_REGISTERABLE','SECURITY_RECOVERABLE', 'SECURITY_LOGIN_WITHOUT_CONFIRMATION']:
-#    app.config[field] = True
-
-# After 'Create app'
-# app.config['MAIL_TESTING'] = True
-# app.config['MAIL_SERVER'] = 'smtp.example.com'
-# app.config['MAIL_PORT'] = 465
-# app.config['MAIL_USE_SSL'] = True
-# app.config['MAIL_USERNAME'] = 'username'
-# app.config['MAIL_PASSWORD'] = 'password'
 
 mail = Mail(app)
 
@@ -87,12 +76,16 @@ db = SQLAlchemy(app)
 
 # Define models
 roles_users = db.Table('roles_users',
-                       db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
-                       db.Column('role_id', db.Integer(), db.ForeignKey('role.id')))
+                       db.Column('user_id', db.Integer(),
+                                 db.ForeignKey('user.id')),
+                       db.Column('role_id', db.Integer(),
+                                 db.ForeignKey('role.id')))
 
 courses_users = db.Table('courses_users',
-                         db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
-                         db.Column('course_id', db.Integer(), db.ForeignKey('course.id')))
+                         db.Column('user_id', db.Integer(),
+                                   db.ForeignKey('user.id')),
+                         db.Column('course_id', db.Integer(),
+                                   db.ForeignKey('course.id')))
 
 
 
@@ -193,8 +186,10 @@ class User(db.Model, UserMixin):
     roles = db.relationship('Role', secondary=roles_users,
                             backref=db.backref('users', lazy='dynamic'))
     courses = db.relationship('Course', secondary=courses_users,
-                              backref=db.backref('users', lazy='dynamic'))
-    submissions = db.relationship('Submission', backref=db.backref('user'), lazy='dynamic')
+                              backref=db.backref(
+                                  'users', lazy='dynamic'))
+    submissions = db.relationship('Submission', backref=db.backref('user'),
+                                  lazy='dynamic')
     peer_review_submissions = db.relationship('PeerReviewSubmission',
                                               backref=db.backref('user'),
                                               lazy='dynamic')
@@ -243,8 +238,8 @@ def get_message(user):
         messages = {}
     return messages.get(user.email)
 
-class Assignment(db.Model):
 
+class Assignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     active = db.Column(db.Boolean())
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'))
@@ -310,7 +305,8 @@ class Assignment(db.Model):
 
         return try_and_save(ipynb_file, ipynb_dir, ipynb_filename)
 
-    def process_ipynb(self, update = False, logfile = None, codestub="# YOUR CODE HERE"):
+    def process_ipynb(self, update = False, logfile = None,
+                      codestub="# YOUR CODE HERE"):
         """
         Processes assignment nb with nbgrader assign
         :param update: update already processed file (gives --force
@@ -357,7 +353,6 @@ class Assignment(db.Model):
         )
 
 
-
 class Submission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     assignment_id = db.Column(db.Integer, db.ForeignKey('assignment.id'))
@@ -386,7 +381,8 @@ class Submission(db.Model):
 
     def process_root(self, step=None):
         """
-        This is a path to directory in jail where submission processing is made.
+        This is a path to directory in jail where submission processing
+        is made.
 
         Example:
 
@@ -414,11 +410,14 @@ class Submission(db.Model):
 
     def process_dir(self, step):
         """
-        Returns individual process dir path to the submission like the following
+        Returns individual process dir path to the submission
+        like the following
 
-        {APD}/jail/{course_id}/{submission_id}/step/{student_id}/{assignment_id}
+        {APD}/jail/{course_id}/{submission_id}/
+        step/{student_id}/{assignment_id}
 
-        :param step: nbgrader step (like 'submitted', 'autograded', 'feedback')
+        :param step: nbgrader step (like 'submitted', 'autograded',
+                'feedback')
         :return: path
         """
         user = self.user
@@ -456,9 +455,16 @@ class PeerReviewAssignment(db.Model):
         backref='assignment',
         lazy='dynamic')
 
-
     def __str__(self):
         return self.name
+
+def median(numbers):
+    sorted_numbers = sorted(numbers)
+    if len(numbers) % 2 == 1:
+        return sorted_numbers[len(sorted_numbers)//2]
+    else:
+        return (sorted_numbers[len(sorted_numbers) // 2] +
+                sorted_numbers[len(sorted_numbers) // 2 - 1])/2.
 
 class PeerReviewSubmission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -479,6 +485,11 @@ class PeerReviewSubmission(db.Model):
     def __str__(self):
         return "peer_review_submission"+str(self.id)
 
+    def grade(self):
+        reviews = self.reviews.all()
+        if not reviews:
+            return None
+        return median([r.sum() for r in reviews if r])
 
 class PeerReviewGradingCriterion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -491,7 +502,7 @@ class PeerReviewGradingCriterion(db.Model):
     maximum = db.Column(db.Integer)
     need_comment = db.Column(db.Boolean())
     review_items = db.relationship('PeerReviewReviewItem',
-                              backref='PeerReviewGradingCriterion',
+                              backref='criterion',
                               lazy='dynamic')
 
     def __str__(self):
@@ -503,19 +514,26 @@ class PeerReviewReview(db.Model):
                               db.ForeignKey('peer_review_submission.id'))
     user_id = db.Column(db.Integer,
                         db.ForeignKey('user.id'))
+
+    comment_for_author = db.Column(db.String(256))
+    comment_for_teacher = db.Column(db.String(256))
+
     items = db.relationship('PeerReviewReviewItem',
-                            backref='peer_review_review',
+                            backref='review',
                             lazy='dynamic')
 
-    review_requests = db.relationship('PeerReviewReviewRequest',
-                                      backref='peer_review_review',
-                                      lazy='dynamic')
-
+    review_request = db.relationship('PeerReviewReviewRequest',
+                                     backref='review',
+                                     uselist=False)
 
     timestamp = db.Column(db.DateTime())
 
     def __str__(self):
         return "peer_review_review" + str(self.id)
+
+    def sum(self):
+        return sum(item.grade for item in self.items)
+
 
 class PeerReviewReviewItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -746,7 +764,6 @@ def show_gradebook(course_id):
                 filter_by(autograded_status='autograded').\
                 order_by(desc(Submission.id)).first()
 
-
             current_grades[assignment.id] = get_grade(submission)
 
     return render_template("gradebook.html",
@@ -776,7 +793,6 @@ def show_last_subm(course_id):
             submission = user.submissions.\
                 filter_by(assignment=assignment).\
                 order_by(desc(Submission.id)).first()
-
 
             current_grades[assignment.id] = submission
 
@@ -812,17 +828,11 @@ def build_sample_db():
         db.session.add(super_user_role)
         db.session.commit()
 
-        user_datastore.create_user(email='admin', password=encrypt_password('admin'),
-                                   first_name='Admin', roles=[user_role, super_user_role])
+        user_datastore.create_user(
+            email='admin', password=encrypt_password('admin'),
+            first_name='Admin', roles=[user_role, super_user_role])
 
         db.session.commit()
-
-
-# Views
-#@app.route('/')
-#@login_required
-#def home():
-#    return render_template('index.html')
 
 
 class AssignmentForm(Form):
@@ -834,8 +844,7 @@ class AssignmentForm(Form):
         query_factory=lambda: Course.query.filter_by(active=True),
         get_label='description')
     name = StringField("Name",
-                       validators=[validators.DataRequired()]
-                       )
+                       validators=[validators.DataRequired()])
 
 
 class AddAssignmentForm(AssignmentForm):
@@ -845,8 +854,10 @@ class AddAssignmentForm(AssignmentForm):
         if not rv:
             return False
 
-        assignment = Assignment.query.filter_by(course=self.course.data,
-                                                name=self.name.data).first()
+        assignment = Assignment.query.\
+            filter_by(course=self.course.data,
+                      name=self.name.data).\
+            first()
 
         if assignment:
             self.name.errors.append("This name is already used")
@@ -934,6 +945,8 @@ def edit_assignment(id):
 @login_required
 def list_assignments():
     submissions = current_user.submissions.all()
+    peer_review_submissions = current_user.peer_review_submissions.all()
+    peer_review_review_requests = current_user.peer_review_review_requests.all()
     courses = current_user.courses
     mycourses = []
     for course in courses:
@@ -944,25 +957,37 @@ def list_assignments():
             mycourse['assignments'].append(
                 (assignment,
                  [s for s in submissions if s.assignment == assignment]))
+
         for assignment in course.peer_review_assignments:
-            mycourse['peer_review_assignments'].append(
-                (assignment,
-                 assignment.submissions.filter_by(
-                    user=current_user).first()))
+            submission = next(
+                (s for s in peer_review_submissions
+                if s.assignment == assignment), None)
+
+            reviews = submission.reviews.all() if submission else []
+
+            requests = [r for r in peer_review_review_requests
+                        if r.submission.assignment == assignment]
+
+            free = not any(r.review is None for r in requests)
+
+            mycourse['peer_review_assignments'].\
+                append((assignment, submission, reviews, requests, free))
 
         mycourses.append(mycourse)
 
     return render_template("list_assignments_ru.html",
                            mycourses=mycourses,
                            message=get_message(current_user),
-                           now=datetime.now())
+                           now=datetime.now(),
+                           user=current_user)
 
 
 class SubmitAssignmentForm(Form):
-    ipynb_file = FileField("ipynb file",
-                           validators=[FileRequired(),
-                                       FileAllowed(['ipynb', 'json'],
-                                                   'ipynb or json files only')])
+    ipynb_file = FileField(
+        "ipynb file",
+        validators=[FileRequired(),
+                    FileAllowed(['ipynb', 'json'],
+                                'ipynb or json files only')])
 
 
 @app.route("/submit/assignment/<id>", methods=['GET', 'POST'])
@@ -1054,11 +1079,8 @@ class SubmitPeerReviewAssignmentForm(Form):
 def peer_review_submit_assignment(id):
     assignment = PeerReviewAssignment.query.get_or_404(id)
     form = SubmitPeerReviewAssignmentForm()
-    submission = assignment.submissions.filter_by(
-        user=current_user).first()
-    if submission:
-        form.work.data = submission.work
-        form.comment_for_reviewer.data = submission.comment_for_reviewer
+    submission = assignment.submissions.\
+        filter_by(user=current_user).first()
 
     if form.validate_on_submit():
         if (assignment.deadline and
@@ -1076,17 +1098,36 @@ def peer_review_submit_assignment(id):
         db.session.add(submission)
         db.session.commit()
         return redirect(url_for("list_assignments"))
+
+    if submission:
+        form.work.data = submission.work
+        form.comment_for_reviewer.data = submission.comment_for_reviewer
+
     return render_template("peer_review_submit_assignment.html",
                            form=form,
                            assignment=assignment)
 
-class PeerReviewReviewItemForm(Form):
-    grade = SelectField('Grade', coerce=int)
+class PeerReviewReviewItemForm(wtforms.Form):
+    # must inherit from wtforms.Form
+    # see http://stackoverflow.com/a/15651474/3025981
+    grade = SelectField(
+        'Grade', coerce=int,
+        validators=[validators.InputRequired(),
+                    validators.NumberRange(0, 100)])
     comment = TextAreaField(
-        'Please, explain your grade (visible to the author)')
+        'Please, explain your grade (visible to the author)',
+        validators=[validators.DataRequired()]
+    )
 
 class PeerReviewReviewForm(Form):
     items = FieldList(FormField(PeerReviewReviewItemForm))
+    comment_for_author = TextAreaField(
+        'Comment for the author on the whole work (optional)'
+    )
+    comment_for_teacher = TextAreaField(
+        'Comment for the teacher on the whole work'
+        ' (optional, not visible to the author)'
+    )
 
 @app.route("/peer_review/submit/review/<id>", methods=['GET', 'POST'])
 @login_required
@@ -1094,15 +1135,45 @@ def peer_review_submit_review(id):
     review_request = PeerReviewReviewRequest.query.get_or_404(id)
     if current_user != review_request.reviewer:
         abort(403)
+    if review_request.review:
+        # review already submitted, cannot change
+        return redirect(url_for('peer_review_get_review', id=id,
+                                message='alreadysubmitted'))
+
     submission = review_request.submission
     assignment = submission.assignment
-    criteria = sorted(assignment.grading_criteria.all(),
-                      key=attrgetter('sort_index'))
+    criteria = assignment.grading_criteria.\
+        order_by(PeerReviewGradingCriterion.sort_index).all()
     form = PeerReviewReviewForm(items=[{} for _ in criteria])
     for criterion, item in zip(criteria, form.items.entries):
-        item.grade.choices = [(str(i), str(i)) for i in
+        item.grade.choices = [(criterion.minimum-1, "-- Select grade --")] +\
+                             [(i, str(i)) for i in
                               range(criterion.minimum,
                                     criterion.maximum + 1)]
+        item.grade.validators = [validators.InputRequired(),
+                                 validators.NumberRange(
+                                     min=criterion.minimum,
+                                     max=criterion.maximum
+                                 )]
+
+    if request.method == 'POST' and form.validate():
+        review = PeerReviewReview()
+        review.review_request = review_request
+        review.submission = review_request.submission
+        review.user = current_user
+        review.timestamp = datetime.now()
+        review.comment_for_author = form.comment_for_author.data
+        review.comment_for_teacher = form.comment_for_teacher.data
+        for criterion, form_item in zip(criteria, form.items):
+            review_item = PeerReviewReviewItem()
+            review_item.review = review
+            review_item.criterion = criterion
+            review_item.grade = form_item.grade.data
+            review_item.comment = form_item.comment.data
+            db.session.add(review_item)
+        db.session.add(review)
+        db.session.commit()
+        return redirect(url_for('list_assignments'))
 
     return render_template("peer_review_submit_review.html",
                            form=form,
@@ -1111,6 +1182,66 @@ def peer_review_submit_review(id):
                            submission=submission,
                            request=review_request,
                            criteria_formitems=zip(criteria, form.items))
+
+@app.route("/peer_review/get/review/<id>")
+@login_required
+def peer_review_get_review(id):
+    review = PeerReviewReview.query.get_or_404(id)
+    if (current_user not in [review.user, review.submission.user]
+            and not current_user.has_role('superuser')):
+        abort(403)
+    messages = {'submitted': 'Your review submitted',
+                'alreadysubmitted':
+                    'Your review already submitted, cannot change it'}
+    return render_template("peer_review_get_review.html",
+                           review=review,
+                           user=current_user,
+                           message=messages.get(request.args.get("message")))
+
+@app.route("/peer_review/get/assignment/<id>")
+@login_required
+def peer_review_get_assignment(id):
+    assignment = PeerReviewAssignment.query.get_or_404(id)
+    return render_template("peer_review_get_assignment.html",
+                           assignment=assignment)
+
+def peer_review_create_request(assignment, reviewer):
+    submissions = assignment.submissions.all()
+    free_submissions = [s for s in submissions
+                        if s.user != reviewer and
+                        reviewer not in
+                        [r.reviewer for r in s.review_requests]]
+    def number_of_reviewers(submission):
+        return len(submission.review_requests.all())
+
+    submissions_to_choose = list(next(itertools.groupby(
+        sorted(free_submissions, key=number_of_reviewers),
+        key=number_of_reviewers), (None, []))[1])
+
+    if submissions_to_choose:
+        submission = random.choice(submissions_to_choose)
+        request = PeerReviewReviewRequest()
+        request.reviewer = reviewer
+        request.submission = submission
+        return request
+
+@app.route("/peer_review/ask_for_new_request/<assignment_id>")
+@login_required
+def peer_review_ask_for_new_request(assignment_id):
+    # TODO: check that reviewer belong to the same course
+    assignment = PeerReviewAssignment.query.get_or_404(assignment_id)
+    reviewer = current_user
+    if any(r.review is None
+           for r in reviewer.peer_review_review_requests
+           if r.submission.assignment == assignment):
+        return redirect(url_for("list_assignments"))
+    request = peer_review_create_request(assignment, reviewer)
+    if not request:
+        return redirect(url_for("list_assignments"))
+    db.session.add(request)
+    db.session.commit()
+    return redirect(url_for("list_assignments"))
+
 
 
 ### FIXME
@@ -1146,20 +1277,16 @@ admin = flask_admin.Admin(
 )
 
 # Add model views
-admin.add_view(MyModelView(Role, db.session))
-admin.add_view(MyModelView(User, db.session))
-admin.add_view(MyModelView(Course, db.session))
-admin.add_view(MyModelView(Assignment, db.session))
-admin.add_view(MyModelView(Submission, db.session))
-admin.add_view(MyModelView(PeerReviewAssignment, db.session))
-admin.add_view(MyModelView(PeerReviewSubmission, db.session))
-admin.add_view(MyModelView(PeerReviewGradingCriterion, db.session))
-admin.add_view(MyModelView(PeerReviewReview, db.session))
-admin.add_view(MyModelView(PeerReviewReviewItem, db.session))
-admin.add_view(MyModelView(PeerReviewReviewRequest, db.session))
 
-# define a context processor for merging flask-admin's template context into the
-# flask-security views.
+for entity in [Role, User, Course, Assignment, Submission,
+               PeerReviewAssignment, PeerReviewSubmission,
+               PeerReviewGradingCriterion, PeerReviewReview,
+               PeerReviewReviewItem, PeerReviewReviewRequest]:
+
+    admin.add_view(MyModelView(entity, db.session))
+
+# define a context processor for merging flask-admin's template context
+# into the flask-security views.
 @security.context_processor
 def security_context_processor():
     return dict(
@@ -1167,8 +1294,6 @@ def security_context_processor():
         admin_view=admin.index_view,
         h=admin_helpers,
     )
-
-
 
 if __name__ == '__main__':
     #    app_dir = os.path.realpath(os.path.dirname(__file__))

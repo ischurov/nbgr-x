@@ -1,0 +1,44 @@
+{% extends "bootstrap/base.html" %}
+
+{% from "security/_macros.html" import render_field_with_errors, render_field %}
+{% include "security/_messages.html" %}
+{% block content %}
+<div class="row-fluid">
+    <div class="col-sm-8 col-sm-offset-2">
+        <h1>Review</h1>
+        {% if message -%}
+        <p class="alert alert-info">{{ message }}</p>
+        {%- endif %}
+        <h2>{{ review.submission.assignment.description }}</h2>
+        <h3>Work</h3>
+        <p>{{ review.submission.work}}</p>
+        {% if review.submission.comment_for_reviewer %}
+        <h3>Comment for reviewer</h3>
+        <p>{{ review.submission.comment_for_reviewer}}</p>
+        {% endif %}
+        <h3>Reviewer's grades and comments</h3>
+        <div class="well">
+                {% for item in review.items %}
+                    <h4>Criterion</h4>
+                    <p>{{ item.criterion.description }}</p>
+                    <p>Minimum grade: {{ item.criterion.minimum }},
+                    maximum grade: {{ item.criterion.maximum }}</p>
+                    <h4>Grade</h4>
+                    <p>{{ item.grade }} </p>
+                    <h4>Comment</h4>
+                    <p>{{ item.comment }}</p>
+                    <hr>
+                {% endfor %}
+                <h4>Comment for author</h4>
+                <p>{{ review.comment_for_author }}</p>
+                {% if user == review.user or user.has_role('superuser') %}
+                <h4>Comment for teacher</h4>
+                <p>Comment for teacher: {{ review.comment_for_teacher }}</p>
+                {% endif %}
+                <h4>Total grade: {{ review.sum() }}</h4>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -26,6 +26,9 @@
                     <hr>
                 {% endfor %}
 
+                {{ render_field_with_errors(form.comment_for_author) }}
+                {{ render_field_with_errors(form.comment_for_teacher) }}
+
                 <input type="submit" value="Go">
             </form>
         </div>

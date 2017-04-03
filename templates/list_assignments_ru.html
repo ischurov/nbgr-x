@@ -65,12 +65,14 @@
                     </th>
                     <th>Срок сдачи</th>
                     <th>Ваша работа</th>
+                    <th>Оценки</th>
+                    <th>Запросы на рецензирование</th>
                 </tr>
 
-                {% for assignment, submission in course['peer_review_assignments'] %}
+                {% for assignment, submission, reviews, review_requests, free in course['peer_review_assignments'] %}
                 <tr>
                     <td>
-                        {{ assignment.description }}
+                        <a href="{{ url_for("peer_review_get_assignment", id=assignment.id) }}">{{ assignment.description }}</a>
                     </td>
                     <td>
                         {{ assignment.deadline }}
@@ -82,12 +84,49 @@
                         {% if now < assignment.deadline %}
                         <a href="{{ url_for("peer_review_submit_assignment", id=assignment.id) }}">
                         {% if submission -%}
-                        Изменить сданную работу
+                        изменить сданную работу
                         {%- else -%}
-                        Сдать работу
+                        сдать работу
                         {%- endif -%}
-                        </a>.
+                        </a>
                         {%- endif -%}
+                    </td>
+                    <td>
+                        <ul>
+                        {% for review in reviews %}
+                            <li>
+                            <a href="{{ url_for("peer_review_get_review", id=review.id) }}">
+                            {{ review.sum() }}</a>
+                            </li>
+                        {%  endfor %}
+                        </ul>
+                        {% if submission is not none %}
+                        <p>Медиана:
+                            <strong>
+                                {{ submission.grade() | default("пока нет") }}
+                            </strong>
+                        </p>
+                        {% endif %}
+
+                    </td>
+                    <td>
+                        <ul>
+                        {% for request in review_requests %}
+                            <li>
+                            <a href="{{ url_for("peer_review_submit_review", id=request.id) }}">
+                            #{{ request.id }}
+                            </a>
+                                {% if request.review is not none %}
+                                    (обработан)
+                                {% endif %}
+
+                            </li>
+                        {%  endfor %}
+                        </ul>
+                        {%  if free %}
+                        <a href="{{ url_for("peer_review_ask_for_new_request",
+                                assignment_id=assignment.id) }}">добавить работу для проверки</a>
+                        {% endif %}
                     </td>
                 </tr>
             {% endfor %} {# peer review assignments #}
