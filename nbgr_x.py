@@ -748,9 +748,9 @@ def do_pseudo_grade(id):
 def show_gradebook(course_id):
     course = Course.query.get_or_404(course_id)
     assignments = course.assignments
-    users = course.users.\
-        order_by(User.last_name).\
-        order_by(User.first_name)
+    users = (course.users.
+             order_by(User.last_name).
+             order_by(User.first_name))
 
     grades = {}
     for user in users:
@@ -759,12 +759,13 @@ def show_gradebook(course_id):
         grades[user.id] = current_grades
 
         for assignment in assignments:
-            submission = user.submissions.\
-                filter_by(assignment=assignment).\
-                filter_by(autograded_status='autograded').\
-                order_by(desc(Submission.id)).first()
+            submission = (user.submissions.
+                          filter_by(assignment=assignment).
+                          filter_by(autograded_status='autograded').
+                          order_by(desc(Submission.id)).first())
 
-            current_grades[assignment.id] = get_grade(submission)
+            current_grades[assignment.id] = (submission,
+                                             get_grade(submission))
 
     return render_template("gradebook.html",
                            assignments=assignments,
@@ -779,9 +780,9 @@ def show_gradebook(course_id):
 def show_last_subm(course_id):
     course = Course.query.get_or_404(course_id)
     assignments = course.assignments
-    users = course.users.\
-        order_by(User.last_name).\
-        order_by(User.first_name)
+    users = (course.users.
+             order_by(User.last_name).
+             order_by(User.first_name))
 
     grades = {}
     for user in users:
@@ -790,9 +791,9 @@ def show_last_subm(course_id):
         grades[user.id] = current_grades
 
         for assignment in assignments:
-            submission = user.submissions.\
-                filter_by(assignment=assignment).\
-                order_by(desc(Submission.id)).first()
+            submission = (user.submissions.
+                          filter_by(assignment=assignment).
+                          order_by(desc(Submission.id)).first())
 
             current_grades[assignment.id] = submission
 
@@ -854,10 +855,9 @@ class AddAssignmentForm(AssignmentForm):
         if not rv:
             return False
 
-        assignment = Assignment.query.\
-            filter_by(course=self.course.data,
-                      name=self.name.data).\
-            first()
+        assignment = (Assignment.query.
+                      filter_by(course=self.course.data,
+                                name=self.name.data).first())
 
         if assignment:
             self.name.errors.append("This name is already used")
@@ -970,8 +970,8 @@ def list_assignments():
 
             free = not any(r.review is None for r in requests)
 
-            mycourse['peer_review_assignments'].\
-                append((assignment, submission, reviews, requests, free))
+            (mycourse['peer_review_assignments'].
+             append((assignment, submission, reviews, requests, free)))
 
         mycourses.append(mycourse)
 
@@ -1079,8 +1079,8 @@ class SubmitPeerReviewAssignmentForm(Form):
 def peer_review_submit_assignment(id):
     assignment = PeerReviewAssignment.query.get_or_404(id)
     form = SubmitPeerReviewAssignmentForm()
-    submission = assignment.submissions.\
-        filter_by(user=current_user).first()
+    submission = (assignment.submissions.
+        filter_by(user=current_user).first())
 
     if form.validate_on_submit():
         if (assignment.deadline and
@@ -1088,12 +1088,12 @@ def peer_review_submit_assignment(id):
             return render_template("toolate.html")
         if not submission:
             submission = PeerReviewSubmission()
-            submission.user=current_user
-            submission.assignment_id=assignment.id
-        submission.timestamp=datetime.today()
+            submission.user = current_user
+            submission.assignment_id = assignment.id
+        submission.timestamp = datetime.today()
 
-        submission.work=form.work.data
-        submission.comment_for_reviewer=form.comment_for_reviewer.data
+        submission.work = form.work.data
+        submission.comment_for_reviewer = form.comment_for_reviewer.data
 
         db.session.add(submission)
         db.session.commit()
@@ -1143,14 +1143,15 @@ def peer_review_submit_review(id):
 
     submission = review_request.submission
     assignment = submission.assignment
-    criteria = assignment.grading_criteria.\
-        order_by(PeerReviewGradingCriterion.sort_index).all()
+    criteria = (assignment.grading_criteria.
+        order_by(PeerReviewGradingCriterion.sort_index).all())
     form = PeerReviewReviewForm(items=[{} for _ in criteria])
     for criterion, item in zip(criteria, form.items.entries):
-        item.grade.choices = [(criterion.minimum-1, "-- Select grade --")] +\
-                             [(i, str(i)) for i in
-                              range(criterion.minimum,
-                                    criterion.maximum + 1)]
+        item.grade.choices = ([(criterion.minimum-1,
+                                "-- Select grade --")] +
+                              [(i, str(i)) for i in
+                               range(criterion.minimum,
+                                     criterion.maximum + 1)])
         item.grade.validators = [validators.InputRequired(),
                                  validators.NumberRange(
                                      min=criterion.minimum,

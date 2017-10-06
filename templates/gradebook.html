@@ -23,7 +23,9 @@
                 <td>{{ user.email }}</td>
                 {% for assignment in assignments %}
                 <td>
-                    {{ grades[user.id][assignment.id] }}
+                <a href="{{ url_for("get_feedback", id=grades[user.id][assignment.id][0].id) }}">
+                    {{ grades[user.id][assignment.id][1] }}
+                </a>
                 </td>
                 {% endfor %}
             </tr>
