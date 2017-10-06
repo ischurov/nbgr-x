@@ -1056,8 +1056,15 @@ def get_feedback(id):
             not current_user.has_role('superuser')):
         abort(403)
     with open(submission.feedback_file()) as f:
-        resp = f.read()
-    return Response(resp,
+        lines = f.readlines()
+    for i, line in enumerate(lines):
+        if 'Score' in line:
+            lines[i] = re.sub(r'Score: (\d+\.\d+)',
+                       r'\0 \|' + re.escape(submission.user.first_name) +
+                       ' ' + re.escape(submission.user.last_name), line)
+            break
+
+    return Response("".join(lines),
                     mimetype="text/html")
 
 @app.route("/json/autograded_status/<id>")

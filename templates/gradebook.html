@@ -23,9 +23,13 @@
                 <td>{{ user.email }}</td>
                 {% for assignment in assignments %}
                 <td>
-                <a href="{{ url_for("get_feedback", id=grades[user.id][assignment.id][0].id) }}">
-                    {{ grades[user.id][assignment.id][1] }}
-                </a>
+                {% set submission, grade = grades[user.id][assignment.id] %}
+                {%  if grade is not none %}
+                    <a href="{{ url_for("get_feedback", id=submission.id) }}">
+                    {{ grade }}
+                    </a>
+                {%  endif %}
+
                 </td>
                 {% endfor %}
             </tr>
