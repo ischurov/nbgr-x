@@ -1060,9 +1060,10 @@ def get_feedback(id):
         lines = f.readlines()
     for i, line in enumerate(lines):
         if 'Score' in line:
-            lines[i] = re.sub(r'(Score: (\d+\.\d+))',
-                       r'\1 | ' + re.escape(submission.user.first_name) +
-                       ' ' + re.escape(submission.user.last_name), line)
+            lines[i] = re.sub(r'(?=Score: (\d+\.\d+))',
+                       r'by ' + re.escape(submission.user.first_name) +
+                       ' ' + re.escape(submission.user.last_name) + ' ',
+                              line)
             break
 
     return Response("".join(lines),
