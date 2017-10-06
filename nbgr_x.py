@@ -33,7 +33,7 @@ import re
 import itertools
 import random
 
-from operator import attrgetter
+import codecs
 
 import json
 
@@ -1055,7 +1055,8 @@ def get_feedback(id):
     if (current_user != submission.user and
             not current_user.has_role('superuser')):
         abort(403)
-    with open(submission.feedback_file()) as f:
+    with codecs.open(submission.feedback_file(),
+                     encoding='utf-8') as f:
         lines = f.readlines()
     for i, line in enumerate(lines):
         if 'Score' in line:
