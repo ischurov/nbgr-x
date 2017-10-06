@@ -28,6 +28,9 @@
                     <a href="{{ url_for("get_feedback", id=submission.id) }}">
                     {{ grade }}
                     </a>
+                    <a href="{{ url_for("do_pseudo_grade", id=submission.id) }}">
+                        ↺
+                    </a>
                 {%  endif %}
 
                 </td>
