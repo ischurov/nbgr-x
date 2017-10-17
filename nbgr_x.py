@@ -678,7 +678,7 @@ def autograde(submission_id):
 
     try:
         command = ['sudo',
-            'docker', 'run', '--rm', '--init'] + mountpoints + [
+            'docker', 'run', '--rm'] + mountpoints + [
             "jupyter/nbgrader",
             "autograde",
             secure_filename(assignment.name),
