@@ -758,8 +758,10 @@ def show_gradebook(course_id):
 def json_gradebook(course_id):
     assignments, users, grades = get_gradebook(course_id)
     columns = [assignment.name for assignment in assignments]
-    table = [[grades[user.id][assignment.id][1]
-              for assignment in assignments] for user in users]
+    table = [[user.id, user.last_name, user.first_name, user.email] +
+             [grades[user.id][assignment.id][1]
+              for assignment in assignments]
+             for user in users]
     return jsonify(columns=columns, table=table)
 
 def get_gradebook(course_id):
