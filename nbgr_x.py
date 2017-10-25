@@ -757,7 +757,8 @@ def show_gradebook(course_id):
 @app.route('/gradebook/<course_id>/json')
 def json_gradebook(course_id):
     assignments, users, grades = get_gradebook(course_id)
-    columns = [assignment.name for assignment in assignments]
+    columns = (['id', 'last_name', 'first_name', 'email'] +
+               [assignment.name for assignment in assignments]
     table = [[user.id, user.last_name, user.first_name, user.email] +
              [grades[user.id][assignment.id][1]
               for assignment in assignments]
