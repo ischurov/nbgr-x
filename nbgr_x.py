@@ -746,6 +746,23 @@ def do_pseudo_grade(id):
 @roles_required(['superuser'])
 @app.route("/gradebook/<course_id>")
 def show_gradebook(course_id):
+    assignments, users, grades = get_gradebook(course_id)
+    return render_template("gradebook.html",
+                           assignments=assignments,
+                           users=users,
+                           grades=grades)
+
+@login_required
+@roles_required(['superuser'])
+@app.route('/gradebook/<course_id>/json')
+def json_gradebook(course_id):
+    assignments, users, grades = get_gradebook(course_id)
+    columns = [assignment.name for assignment in assignments]
+    table = [[grade for submission, grade in grades[user.id][assignment.id]
+              for assignment in assignments] for user in users]
+    return jsonify(columns=columns, table=table)
+
+def get_gradebook(course_id):
     course = Course.query.get_or_404(course_id)
     assignments = course.assignments
     users = (course.users.
@@ -766,11 +783,7 @@ def show_gradebook(course_id):
 
             current_grades[assignment.id] = (submission,
                                              get_grade(submission))
-
-    return render_template("gradebook.html",
-                           assignments=assignments,
-                           users=users,
-                           grades=grades)
+    return assignments, users, grades
 
 #THIS FUNCTION IS FOR DEBUG ONLY
 #SHOULD BE REMOVED SOON
