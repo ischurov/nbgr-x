@@ -1282,18 +1282,9 @@ def show_my_grades():
     import json
 
     with open("/srv/nbgr-x/grades.json") as f:
-        sheet = json.load(f)
+        grades = json.load(f)
 
-    header = sheet.pop(0)
-    grades = None
-    for row in sheet:
-        if row[0].lower().strip() == current_user.email.lower().strip():
-            grades = row[1:]
-            break
-    if grades:
-        table = zip(header[1:], grades)
-    else:
-        table = None
+    table = grades.get(current_user.email)
     return render_template("show_my_grades.html", table=table,
                            email=current_user.email)
 
