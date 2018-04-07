@@ -1126,8 +1126,7 @@ def json_autograded_status(id):
                    log=submission.autograded_log)
 
 class SubmitPeerReviewAssignmentForm(Form):
-    url = StringField('External URL (if work is hosted somewhere)',
-                       [validators.DataRequired()])
+    url = StringField('External URL (if work is hosted somewhere)')
 
     file =  FileField("ipynb or zip file",
                       validators=[FileAllowed(['ipynb', 'json', 'zip'],
@@ -1135,12 +1134,12 @@ class SubmitPeerReviewAssignmentForm(Form):
 
     comment_for_reviewer = TextAreaField('Comment to reviewer')
 
-    def validate(self, extra_validators=None):
-        if not Form.validate(self):
-            return False
-        if not self.url.data.strip() and not self.file.data:
-            raise ValidationError("Submission is empty!")
-        return True
+    # def validate(self, extra_validators=None):
+    #     if not Form.validate(self):
+    #         return False
+    #     if not self.url.data.strip() and not self.file.data:
+    #         raise ValidationError("Submission is empty!")
+    #     return True
 
 @app.route("/peer_review/submit/assignment/<id>", methods=['GET', 'POST'])
 @login_required
