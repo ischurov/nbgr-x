@@ -103,7 +103,7 @@
                         {% if submission is not none %}
                         <p>Медиана:
                             <strong>
-                                {% if sumbission.grade() is not null %}
+                                {% if sumbission.grade() is not none %}
                                     {{ submission.grade()}}
                                 {% else %}
                                     пока нет
