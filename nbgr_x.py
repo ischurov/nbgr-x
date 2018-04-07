@@ -1161,7 +1161,7 @@ def peer_review_submit_assignment(id):
 
         if form.file:
             _, extension = os.path.splitext(form.file.data.filename)
-            filename = secure_filename(uuid.uuid4().hex + "." + extension)
+            filename = secure_filename(uuid.uuid4().hex + extension)
             # make unique filename but keep extension of the original
             # upload file
             try_and_save(form.file.data,
