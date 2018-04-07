@@ -7,7 +7,6 @@
     <div class="col-sm-8 col-sm-offset-2">
         <h1>Submit Peer Review Assignment</h1>
         <h2>{{ assignment.description }}</h2>
-        {{ form.errors }}
         <div class="well">
             <form action="{{ url_for('peer_review_submit_assignment', id=assignment.id) }}" method="POST" name="form" enctype="multipart/form-data">
                 {{ form.csrf_token }}
