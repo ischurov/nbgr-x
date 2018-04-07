@@ -1149,7 +1149,7 @@ def peer_review_submit_assignment(id):
     submission = (assignment.submissions.
         filter_by(user=current_user).first())
 
-    if form.validate_on_submit():
+    if form.is_submitted(): #FIXME add validation
         if (assignment.deadline and
                     datetime.today() > assignment.deadline):
             return render_template("toolate.html")
