@@ -1,0 +1,13 @@
+{% macro render_work_parts(work_parts) %}
+        {% if work_parts.download %}
+        <p>[<a href="{{ work_parts.download }}">download work</a>]
+        {% if work_parts.preview %}
+            [<a href="{{ work_parts.preview }}" target="_blank">preview ipynb</a>]
+        {% endif %}
+        </p>
+        {% endif %}
+
+        {% if work_parts.external %}
+            <p>{{ work_parts.external }}</p>
+        {% endif %}
+{% endmacro %}
