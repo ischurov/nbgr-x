@@ -8,7 +8,18 @@
         <h1>Submit Review</h1>
         <h2>{{ assignment.description }}</h2>
         <h3>Work</h3>
-        <p>{{ submission.work}}</p>
+        {% if work_parts.download %}
+        <p><a href="{{ work_parts.download }}">download work</a>
+        {% if work_parts.preview %}
+            <a href="{{ work_parts.preview }}">(preview)</a>
+        {% endif %}
+        </p>
+        {% endif %}
+
+        {% if work_parts.external %}
+            <p>{{ work_parts.external }}</p>
+        {% endif %}
+
         {% if submission.comment_for_reviewer %}
         <h3>Comment for reviewer</h3>
         <p>{{ submission.comment_for_reviewer}}</p>

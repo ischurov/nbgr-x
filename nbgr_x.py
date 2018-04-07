@@ -14,7 +14,8 @@ import flask_admin
 from flask_security.forms import RegisterForm
 from flask_wtf import Form
 from wtforms import (BooleanField, StringField, TextAreaField, validators,
-                     SelectField, TextAreaField, FieldList, FormField)
+                     SelectField, TextAreaField, FieldList, FormField,
+                     ValidationError)
 import wtforms
 from wtforms.ext.sqlalchemy.fields import (QuerySelectMultipleField,
                                            QuerySelectField)
@@ -36,6 +37,8 @@ import random
 import codecs
 
 import json
+import uuid
+import filetype
 
 # from itertools import chain
 # Create app
@@ -370,8 +373,7 @@ class Submission(db.Model):
                             secure_filename(self.assignment.course.name),
                             "submitted",
                             str(self.user_id),
-                            secure_filename(self.assignment.name)
-                            )
+                            secure_filename(self.assignment.name))
 
     def filename(self):
         return self.timestamp.isoformat()+".ipynb"
@@ -458,6 +460,12 @@ class PeerReviewAssignment(db.Model):
     def __str__(self):
         return self.name
 
+    def storage_dir(self):
+        return os.path.join(app.config['SUBMISSIONS_DIR'],
+                            secure_filename(self.assignment.course.name),
+                            "peer_review_store",
+                            secure_filename(self.assignment.name))
+
 def median(numbers):
     sorted_numbers = sorted(numbers)
     if len(numbers) % 2 == 1:
@@ -490,6 +498,28 @@ class PeerReviewSubmission(db.Model):
         if not reviews:
             return None
         return median([r.sum() for r in reviews if r])
+
+    def work_parts(self):
+        m = re.match("local:([^ ]+)( \+ (.*))?", self.work)
+        parts = {}
+        if not m:
+            return {'external': self.work}
+        localfile = m.group(1)
+        _, extension = os.path.splitext(localfile)
+        parts['download'] = url_for(
+            "get_peer_review_submission_content",
+            assignment_id=self.assignment.id,
+            filename=localfile)
+        if extension in ['ipynb', 'json']:
+            global_path = url_for("get_peer_review_submission_content",
+                                  assignment_id=self.assignment.id,
+                                  filename=localfile, _external=True)
+            parts['preview'] = (app.config['IPYNB_PREVIEW_PREFIX'] +
+                                global_path.replace("http://", ""))
+
+        if m.group(3):
+            parts['external'] = m.group(3)
+        return parts
 
 class PeerReviewGradingCriterion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1096,8 +1126,21 @@ def json_autograded_status(id):
                    log=submission.autograded_log)
 
 class SubmitPeerReviewAssignmentForm(Form):
-    work = StringField('Work', [validators.DataRequired()])
+    url = StringField('External URL (if work is hosted somewhere)',
+                       [validators.DataRequired()])
+
+    file =  FileField("ipynb or zip file",
+                      validators=[FileAllowed(['ipynb', 'json', 'zip'],
+                                              'ipynb or zip files only')])
+
     comment_for_reviewer = TextAreaField('Comment to reviewer')
+
+    def validate(self, extra_validators=None):
+        if not Form.validate(self):
+            return False
+        if not self.url.data.strip() and not self.file.data:
+            raise ValidationError("Submission is empty!")
+        return True
 
 @app.route("/peer_review/submit/assignment/<id>", methods=['GET', 'POST'])
 @login_required
@@ -1117,7 +1160,23 @@ def peer_review_submit_assignment(id):
             submission.assignment_id = assignment.id
         submission.timestamp = datetime.today()
 
-        submission.work = form.work.data
+        if form.file:
+            _, extension = os.path.splitext(form.file.data.filename)
+            filename = secure_filename(uuid.uuid4().hex + "." + extension)
+            # make unique filename but keep extension of the original
+            # upload file
+            try_and_save(form.file.data,
+                         assignment.storage_dir(),
+                         filename)
+
+            if not form.url.data.strip():
+                submission.work = "local:" + filename
+            else:
+                submission.work = "local:{} + {}".format(
+                    filename, form.url.data)
+        else:
+            submission.work = form.url.data
+
         submission.comment_for_reviewer = form.comment_for_reviewer.data
 
         db.session.add(submission)
@@ -1125,12 +1184,37 @@ def peer_review_submit_assignment(id):
         return redirect(url_for("list_assignments"))
 
     if submission:
-        form.work.data = submission.work
+        form.url.data = re.sub("local:[^ ]+( \+ )?", "",
+                               submission.work)
         form.comment_for_reviewer.data = submission.comment_for_reviewer
 
     return render_template("peer_review_submit_assignment.html",
                            form=form,
                            assignment=assignment)
+
+@app.route(
+    "/peer_review/get/submission_content/<assignment_id>/<filename>")
+@login_required
+def get_peer_review_submission_content(assignment_id, filename):
+    assignment = PeerReviewAssignment.query.get_or_404(assignment_id)
+    if (current_user not in assignment.course.users and
+            not current_user.has_role('superuser')):
+        abort(403)
+    filename = os.path.join(assignment.storage_dir(),
+                               secure_filename(filename))
+    try:
+        kind = filetype.guess(filename)
+        if kind:
+            mimetype = kind.mime
+        else:
+            mimetype = "application/unknown"
+        with open(filename) as f:
+            resp = f.read()
+        return Response(resp,
+                        mimetype=mimetype,
+                        headers={"Content-disposition": "attachment"})
+    except IOError:
+        abort(404)
 
 class PeerReviewReviewItemForm(wtforms.Form):
     # must inherit from wtforms.Form
@@ -1180,8 +1264,7 @@ def peer_review_submit_review(id):
         item.grade.validators = [validators.InputRequired(),
                                  validators.NumberRange(
                                      min=criterion.minimum,
-                                     max=criterion.maximum
-                                 )]
+                                     max=criterion.maximum)]
 
     if request.method == 'POST' and form.validate():
         review = PeerReviewReview()
@@ -1208,6 +1291,7 @@ def peer_review_submit_review(id):
                            assignment=assignment,
                            submission=submission,
                            request=review_request,
+                           work_parts=submission.work_parts(),
                            criteria_formitems=zip(criteria, form.items))
 
 @app.route("/peer_review/get/review/<id>")
@@ -1242,7 +1326,7 @@ def peer_review_create_request(assignment, reviewer):
     def number_of_reviewers(submission):
         return len(submission.review_requests.all())
 
-    # FIXME: rewrite it using SQL
+    # TODO: rewrite it using SQL
     submissions_to_choose = list(next(itertools.groupby(
         sorted(free_submissions, key=number_of_reviewers),
         key=number_of_reviewers), (None, []))[1])
