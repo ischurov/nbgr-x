@@ -462,9 +462,9 @@ class PeerReviewAssignment(db.Model):
 
     def storage_dir(self):
         return os.path.join(app.config['SUBMISSIONS_DIR'],
-                            secure_filename(self.assignment.course.name),
+                            secure_filename(self.course.name),
                             "peer_review_store",
-                            secure_filename(self.assignment.name))
+                            secure_filename(self.name))
 
 def median(numbers):
     sorted_numbers = sorted(numbers)
