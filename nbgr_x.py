@@ -1186,10 +1186,14 @@ def peer_review_submit_assignment(id):
         form.url.data = re.sub("local:[^ ]+( \+ )?", "",
                                submission.work)
         form.comment_for_reviewer.data = submission.comment_for_reviewer
-
+    if form.is_submitted() and not form.validate():
+        message = "Form not submitted!"
+    else:
+        message = None
     return render_template("peer_review_submit_assignment.html",
                            form=form,
-                           assignment=assignment)
+                           assignment=assignment,
+                           message=message)
 
 @app.route(
     "/peer_review/get/submission_content/<assignment_id>/<filename>")
