@@ -1193,12 +1193,8 @@ def peer_review_submit_assignment(id):
 
 @app.route(
     "/peer_review/get/submission_content/<assignment_id>/<filename>")
-@login_required
 def get_peer_review_submission_content(assignment_id, filename):
     assignment = PeerReviewAssignment.query.get_or_404(assignment_id)
-    if (current_user not in assignment.course.users and
-            not current_user.has_role('superuser')):
-        abort(403)
     filename = os.path.join(assignment.storage_dir(),
                                secure_filename(filename))
     try:
