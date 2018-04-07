@@ -1286,7 +1286,6 @@ def peer_review_submit_review(id):
                            assignment=assignment,
                            submission=submission,
                            request=review_request,
-                           work_parts=submission.work_parts(),
                            criteria_formitems=zip(criteria, form.items))
 
 @app.route("/peer_review/get/review/<id>")

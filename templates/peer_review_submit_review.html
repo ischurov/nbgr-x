@@ -1,6 +1,7 @@
 {% extends "bootstrap/base.html" %}
 
 {% from "security/_macros.html" import render_field_with_errors, render_field %}
+{% from "macros.html" import render_work_parts %}
 {% include "security/_messages.html" %}
 {% block content %}
 <div class="row-fluid">
@@ -8,17 +9,7 @@
         <h1>Submit Review</h1>
         <h2>{{ assignment.description }}</h2>
         <h3>Work</h3>
-        {% if work_parts.download %}
-        <p>[<a href="{{ work_parts.download }}">download work</a>]
-        {% if work_parts.preview %}
-            [<a href="{{ work_parts.preview }}" target="_blank">preview ipynb</a>]
-        {% endif %}
-        </p>
-        {% endif %}
-
-        {% if work_parts.external %}
-            <p>{{ work_parts.external }}</p>
-        {% endif %}
+        {{ render_work_parts(submission.work_parts()) }}
 
         {% if submission.comment_for_reviewer %}
         <h3>Comment for reviewer</h3>
