@@ -510,7 +510,7 @@ class PeerReviewSubmission(db.Model):
             "get_peer_review_submission_content",
             assignment_id=self.assignment.id,
             filename=localfile)
-        if extension in ['ipynb', 'json']:
+        if extension in ['.ipynb', '.json']:
             global_path = url_for("get_peer_review_submission_content",
                                   assignment_id=self.assignment.id,
                                   filename=localfile, _external=True)
@@ -1340,20 +1340,22 @@ def peer_review_create_request(assignment, reviewer):
 @app.route("/peer_review/ask_for_new_request/<assignment_id>")
 @login_required
 def peer_review_ask_for_new_request(assignment_id):
-    # TODO: check that reviewer belong to the same course
     assignment = PeerReviewAssignment.query.get_or_404(assignment_id)
     reviewer = current_user
-    if any(r.review is None
+    reviewer_is_busy = any(r.review is None
            for r in reviewer.peer_review_review_requests
-           if r.submission.assignment == assignment):
+           if r.submission.assignment == assignment)
+    if (reviewer_is_busy or
+            datetime.today() < assignment.deadline or
+            assignment.course not in current_user.courses):
         return redirect(url_for("list_assignments"))
+
     request = peer_review_create_request(assignment, reviewer)
     if not request:
         return redirect(url_for("list_assignments"))
     db.session.add(request)
     db.session.commit()
     return redirect(url_for("list_assignments"))
-
 
 
 ### FIXME

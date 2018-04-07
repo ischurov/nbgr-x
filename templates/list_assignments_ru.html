@@ -103,7 +103,11 @@
                         {% if submission is not none %}
                         <p>Медиана:
                             <strong>
-                                {{ submission.grade() | default("пока нет") }}
+                                {% if sumbission.grade() is not null %}
+                                    {{ submission.grade()}}
+                                {% else %}
+                                    пока нет
+                                {% endif %}
                             </strong>
                         </p>
                         {% endif %}
@@ -123,7 +127,7 @@
                             </li>
                         {%  endfor %}
                         </ul>
-                        {%  if free %}
+                        {%  if now >= assignment.deadline and free %}
                         <a href="{{ url_for("peer_review_ask_for_new_request",
                                 assignment_id=assignment.id) }}">хочу проверить ещё одну работу</a>
                         {% endif %}
