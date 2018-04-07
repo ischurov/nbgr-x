@@ -9,9 +9,9 @@
         <h2>{{ assignment.description }}</h2>
         <h3>Work</h3>
         {% if work_parts.download %}
-        <p><a href="{{ work_parts.download }}">download work</a>
+        <p>[<a href="{{ work_parts.download }}">download work</a>]
         {% if work_parts.preview %}
-            <a href="{{ work_parts.preview }}">(preview)</a>
+            [<a href="{{ work_parts.preview }}" target="_blank">preview ipynb</a>]
         {% endif %}
         </p>
         {% endif %}
