@@ -1174,7 +1174,14 @@ def peer_review_submit_assignment(id):
                 submission.work = "local:{} + {}".format(
                     filename, form.url.data)
         else:
-            submission.work = form.url.data
+            if submission.work:
+                m = re.match("(local:[^ ]+)( \+ (.*))?", submission.work)
+                if m:
+                    submission.work = m.group(1)
+            if submission.work:
+                submission.work += " + " + form.url.data
+            else:
+                submission.work = form.url.data
 
         submission.comment_for_reviewer = form.comment_for_reviewer.data
 
@@ -1183,7 +1190,8 @@ def peer_review_submit_assignment(id):
         return redirect(url_for("list_assignments"))
 
     if submission:
-        form.url.data = submission.work
+        form.url.data = re.sub("local:[^ ]+( \+ )?", "",
+                               submission.work)
         form.comment_for_reviewer.data = submission.comment_for_reviewer
     if form.is_submitted() and not form.validate():
         message = "Form not submitted!"
