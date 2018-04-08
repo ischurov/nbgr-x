@@ -1,6 +1,7 @@
 {% extends "bootstrap/base.html" %}
 
 {% from "security/_macros.html" import render_field_with_errors, render_field %}
+{% from "macros.html" import render_work_parts %}
 {% include "security/_messages.html" %}
 {% block content %}
 <div class="row-fluid">
@@ -9,6 +10,10 @@
         <h2>{{ assignment.description }}</h2>
         {% if message %}
         <h3>{{ message }}</h3>
+        {% endif %}
+        {% if submission %}
+            <h3>Your work</h3>
+        {{  render_work_parts(submission.work_parts() }}
         {% endif %}
         <div class="well">
             <form action="{{ url_for('peer_review_submit_assignment', id=assignment.id) }}" method="POST" name="form" enctype="multipart/form-data">

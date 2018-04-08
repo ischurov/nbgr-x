@@ -84,7 +84,7 @@
                         {% if now < assignment.deadline %}
                         <a href="{{ url_for("peer_review_submit_assignment", id=assignment.id) }}">
                         {% if submission -%}
-                        изменить сданную работу
+                        просмотреть или изменить сданную работу
                         {%- else -%}
                         сдать работу
                         {%- endif -%}

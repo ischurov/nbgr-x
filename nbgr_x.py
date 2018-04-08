@@ -1193,7 +1193,8 @@ def peer_review_submit_assignment(id):
     return render_template("peer_review_submit_assignment.html",
                            form=form,
                            assignment=assignment,
-                           message=message)
+                           message=message,
+                           submission=submission)
 
 @app.route(
     "/peer_review/get/submission_content/<assignment_id>/<filename>")
