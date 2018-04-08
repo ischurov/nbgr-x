@@ -1202,11 +1202,13 @@ def get_peer_review_submission_content(assignment_id, filename):
     filename = os.path.join(assignment.storage_dir(),
                                secure_filename(filename))
     try:
-        kind = filetype.guess(filename)
-        if kind:
-            mimetype = kind.mime
+        _, ext = os.path.splitext(filename)
+        if ext in ['.ipynb', '.json']:
+            mimetype = 'application/json'
+        elif ext == '.zip':
+            mimetype = 'application/zip'
         else:
-            mimetype = "application/unknown"
+            mimetype = "application/octet-stream"
         with open(filename) as f:
             resp = f.read()
         return Response(resp,
