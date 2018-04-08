@@ -1199,7 +1199,7 @@ def peer_review_submit_assignment(id):
     "/peer_review/get/submission_content/<assignment_id>/<filename>")
 def get_peer_review_submission_content(assignment_id, filename):
     assignment = PeerReviewAssignment.query.get_or_404(assignment_id)
-    filename = os.path.join(assignment.storage_dir(),
+    full_filename = os.path.join(assignment.storage_dir(),
                                secure_filename(filename))
     try:
         _, ext = os.path.splitext(filename)
@@ -1209,11 +1209,12 @@ def get_peer_review_submission_content(assignment_id, filename):
             mimetype = 'application/zip'
         else:
             mimetype = "application/octet-stream"
-        with open(filename) as f:
+        with open(full_filename) as f:
             resp = f.read()
         return Response(resp,
                         mimetype=mimetype,
-                        headers={"Content-disposition": "attachment"})
+                        headers={"Content-disposition":
+                                     "attachment; filename=" + filename})
     except IOError:
         abort(404)
 
