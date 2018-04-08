@@ -1090,7 +1090,7 @@ def get_submission_content(id):
     with open(submission.fullfilename()) as f:
         resp = f.read()
     return Response(resp,
-                    mimetype="application/json",
+                    mimetype="application/x-ipynb+json",
                     headers={"Content-disposition": "attachment"})
 
 @app.route("/get/feedback/<id>")
@@ -1204,7 +1204,7 @@ def get_peer_review_submission_content(assignment_id, filename):
     try:
         _, ext = os.path.splitext(filename)
         if ext in ['.ipynb', '.json']:
-            mimetype = 'application/json'
+            mimetype = 'application/x-ipynb+json'
         elif ext == '.zip':
             mimetype = 'application/zip'
         else:
