@@ -1159,7 +1159,7 @@ def peer_review_submit_assignment(id):
             submission.assignment_id = assignment.id
         submission.timestamp = datetime.today()
 
-        if form.file:
+        if form.file.data:
             _, extension = os.path.splitext(form.file.data.filename)
             filename = secure_filename(uuid.uuid4().hex + extension)
             # make unique filename but keep extension of the original
