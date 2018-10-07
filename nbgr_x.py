@@ -708,9 +708,8 @@ def autograde(submission_id):
 
     try:
         # need timeout command
-        command = ['timeout', '-s', '9',
+        command = ['sudo', 'timeout', '-s', '9',
                    str(app.config['GRADING_TIMEOUT']),
-                   'sudo',
                    'docker', 'run', '--rm'] + mountpoints + [
                    "jupyter/nbgrader",
                    "autograde",
