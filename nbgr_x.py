@@ -729,17 +729,20 @@ def autograde(submission_id):
         # timeout scenario (hanged kernel)
 
         if "Timeout waiting for IOPub output" in submission.autograded_log:
+            # nbgrader killed process by itself
             submission.autograded_status = 'timeout'
         else:
             try:
-                command = ['sudo',
-                    'docker', 'run', '--rm'] + mountpoints + [
-                    "jupyter/nbgrader",
-                    "feedback",
-                    secure_filename(assignment.name),
-                    "--student",
-                    str(user),
-                    '--force'
+                # need timeout command
+                command = ['timeout', app.config['GRADING_TIMEOUT'],
+                           'sudo',
+                            'docker', 'run', '--rm'] + mountpoints + [
+                            "jupyter/nbgrader",
+                            "feedback",
+                            secure_filename(assignment.name),
+                            "--student",
+                            str(user),
+                            '--force'
                 ]
 
                 print "DEBUG: " + " ".join(command)
@@ -752,10 +755,12 @@ def autograde(submission_id):
                 submission.autograded_log = error.output
 
     except subprocess.CalledProcessError as error:
-        submission.autograded_log = error.output
-        submission.autograded_status = 'failed'
-
-
+        if error.returncode == 124:
+            # https://stackoverflow.com/a/29649720/3025981
+            submission.autograded_status = 'timeout'
+        else:
+            submission.autograded_log = error.output
+            submission.autograded_status = 'failed'
 
     db.session.commit()
 
