@@ -760,7 +760,8 @@ def autograde(submission_id):
             # https://stackoverflow.com/a/29649720/3025981
             submission.autograded_status = 'timeout'
         else:
-            submission.autograded_log = error.output
+            submission.autograded_log = 'returncode: {}, {}'.format(
+                error.returncode, error.output)
             submission.autograded_status = 'failed'
 
     db.session.commit()
