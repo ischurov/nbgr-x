@@ -852,7 +852,7 @@ def autograde(submission_id):
                 submission.autograded_log = error.output
 
     except subprocess.CalledProcessError as error:
-        if error.returncode == 124:
+        if error.returncode in [124, 137]:
             # https://stackoverflow.com/a/29649720/3025981
             submission.autograded_status = "timeout"
         else:
