@@ -708,17 +708,17 @@ def autograde(submission_id):
 
     try:
         # need timeout command
-        command = ['timeout', str(app.config['GRADING_TIMEOUT']),
-                   '-s', '9',
-                      'sudo',
-            'docker', 'run', '--rm'] + mountpoints + [
-            "jupyter/nbgrader",
-            "autograde",
-            secure_filename(assignment.name),
-            "--student",
-            str(user),
-            "--create",
-            '--force'
+        command = ['timeout', '-s', '9',
+                   str(app.config['GRADING_TIMEOUT']),
+                   'sudo',
+                   'docker', 'run', '--rm'] + mountpoints + [
+                   "jupyter/nbgrader",
+                   "autograde",
+                   secure_filename(assignment.name),
+                   "--student",
+                   str(user),
+                   "--create",
+                   '--force'
         ]
 
         print "DEBUG: " + " ".join(command)
