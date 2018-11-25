@@ -869,18 +869,16 @@ def send_asset(path):
     return send_from_directory(os.path.join(MYPATH, "assets"), path)
 
 
-@login_required
-@roles_required(["superuser"])
 @app.route("/_auto_grade/<id>")
+@roles_required(["superuser"])
 def do_pseudo_grade(id):
     submission = Submission.query.get_or_404(id)
     autograde.delay(submission.id)
     return redirect(url_for("get_feedback", id=submission.id))
 
 
-@login_required
-@roles_required(["superuser"])
 @app.route("/gradebook/<course_id>")
+@roles_required(["superuser"])
 def show_gradebook(course_id):
     assignments, users, grades = get_gradebook(course_id)
     return render_template(
@@ -891,9 +889,8 @@ def show_gradebook(course_id):
     )
 
 
-@login_required
-@roles_required(["superuser"])
 @app.route("/gradebook/<course_id>/json")
+@roles_required(["superuser"])
 def json_gradebook(course_id):
     assignments, users, grades = get_gradebook(course_id)
     columns = ["id", "last_name", "first_name", "email"] + [
@@ -935,9 +932,8 @@ def get_gradebook(course_id):
 
 # THIS FUNCTION IS FOR DEBUG ONLY
 # SHOULD BE REMOVED SOON
-@login_required
-@roles_required(["superuser"])
 @app.route("/_gradebook/<course_id>")
+@roles_required(["superuser"])
 def show_last_subm(course_id):
     course = Course.query.get_or_404(course_id)
     assignments = course.assignments
