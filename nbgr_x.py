@@ -1243,7 +1243,7 @@ def get_submission_content(id):
     return Response(
         resp,
         mimetype="application/x-ipynb+json",
-        headers={"Content-disposition": "attachment"},
+        headers={"Content-disposition": "attachment; filename=" + id + ".ipynb"},
     )
 
 
