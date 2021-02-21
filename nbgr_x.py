@@ -375,7 +375,7 @@ class Assignment(db.Model):
         #     mode,
         #     '--ClearSolutions.code_stub="%s"' % codestub,
         # ]
-        mountpoints = ["-v", ".:/assignments/"]
+        mountpoints = ["-v", self.course.assignments_process_dir() + ":/assignments/"]
         command = (
             [
                 "sudo",
