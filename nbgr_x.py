@@ -1631,14 +1631,23 @@ def peer_review_ask_for_new_request(assignment_id):
 @app.route("/_show_my_grades")
 @login_required
 def show_my_grades():
-    import json
-
     with open("/srv/nbgr-x/grades.json") as f:
         grades = json.load(f)
 
     table = grades.get(current_user.email)
     return render_template(
         "show_my_grades.html", table=table, email=current_user.email
+    )
+
+@app.route("/_show_other_grades/<email>")
+@roles_required("superuser")
+def show_other_grades(email):
+    with open("/srv/nbgr-x/grades.json") as f:
+        grades = json.load(f)
+
+    table = grades.get(email)
+    return render_template(
+        "show_my_grades.html", table=table, email=email
     )
 
 
