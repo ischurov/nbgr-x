@@ -875,7 +875,7 @@ def autograde(submission_id):
                     + mountpoints
                     + [
                         "jupyter/nbgrader",
-                        "feedback",
+                        "generate_feedback",
                         secure_filename(assignment.name),
                         "--student",
                         str(user),
