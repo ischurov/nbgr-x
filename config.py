@@ -1,8 +1,10 @@
 # Create dummy secrey key so we can use sessions
 SECRET_KEY = 'ahieph3VeiXooz2uwee3keesiequeeke'
 
+SERVER_NAME = "python.math-hse.info"
+
 # Create in-memory database
-DATABASE_FILE = '/srv/nbgr-x/sample_db.sqlite'
+DATABASE_FILE = '/Users/user/prj/nbgr-x/sample_db.sqlite'
 SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DATABASE_FILE
 SQLALCHEMY_ECHO = False
 
@@ -25,12 +27,12 @@ SECURITY_REGISTERABLE = True
 # SECURITY_CONFIRMABLE = True
 SECURITY_SEND_REGISTER_EMAIL = True
 
-NBGRX_PREFIX = "/srv/nbgr-x"
+NBGRX_PREFIX = "/Users/user/prj/nbgr-x"
 
 ASSIGNMENTS_PROCESS_DIR = NBGRX_PREFIX+'/data/assignments_process'
 # contains <course_name>/gradebook.db
-
-ASSIGNMENTS_URL_PREVIEW_PREFIX = ("http://nbviewer.ipython.org/url/"
+IPYNB_PREVIEW_PREFIX = ("http://nbviewer.jupyter.org/url/")
+ASSIGNMENTS_URL_PREVIEW_PREFIX = (IPYNB_PREVIEW_PREFIX +
                                   "python.math-hse.info/static/"
                                   "assignments_release")
 ASSIGNMENTS_URL_PREFIX = ("http://python.math-hse.info/static/"
@@ -48,3 +50,7 @@ IPYNB_LINK_TEMPLATE = \
 
 # Local only
 DEBUG = True
+
+CELERY_BROKER_URL = 'amqp://guest:quaizahPhee7OhTh2wahbooshailee@localhost:5672//'
+
+GRADING_TIMEOUT = 3 * 60
