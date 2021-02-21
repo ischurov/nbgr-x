@@ -367,14 +367,31 @@ class Assignment(db.Model):
         else:
             mode = "--create"
 
-        command = [
-            app.config["PYTHON"],
-            app.config["NBGRADER"],
-            "assign",
-            secure_filename(self.name),
-            mode,
-            '--ClearSolutions.code_stub="%s"' % codestub,
-        ]
+        # command = [
+        #     app.config["PYTHON"],
+        #     app.config["NBGRADER"],
+        #     "assign",
+        #     secure_filename(self.name),
+        #     mode,
+        #     '--ClearSolutions.code_stub="%s"' % codestub,
+        # ]
+        mountpoints = ["-v", ".:/assignments/"]
+        command = (
+            [
+                "sudo",
+                "docker",
+                "run",
+                "--rm",
+            ]
+            + mountpoints
+            + [
+                "jupyter/nbgrader",
+                "generate_assignment",
+                secure_filename(self.name),
+                mode,
+                '--ClearSolutions.code_stub="%s"' % codestub,
+            ]
+        )
 
         if logfile:
             log = open(logfile, "a")
