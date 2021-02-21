@@ -795,6 +795,31 @@ def autograde(submission_id):
                 env[key] = value
                 print("DEBUG: %s => %s" % (key, value))
 
+    # Update notebook
+    command = (
+        [
+            "sudo",
+            "docker",
+            "run",
+            "--rm",
+        ]
+        + mountpoints
+        + [
+            "jupyter/nbgrader",
+            "update",
+            os.path.join("submitted",
+                         str(user),
+                         secure_filename(assignment.name),
+                         secure_filename(assignment.name) + ".ipynb")
+        ]
+    )
+
+    subprocess.check_output(
+        command, stderr=subprocess.STDOUT, env=env
+    )
+
+    # End update notebook
+
     try:
         # need timeout command
         command = (
