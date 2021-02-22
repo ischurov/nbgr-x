@@ -1635,6 +1635,13 @@ def show_my_grades():
         grades = json.load(f)
 
     table = grades.get(current_user.email)
+    with open("/srv/nbgr-x/show_grades.log", "a") as f:
+        f.write("email: " + current_user.email + "\n")
+        f.write('-- grades --\n')
+        f.write(str(grades))
+        f.write("\n------\n-- table --\n")
+        f.write(str(table))
+
     return render_template(
         "show_my_grades.html", table=table, email=current_user.email
     )
